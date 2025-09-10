@@ -1,94 +1,138 @@
+import http from "http";
 import puppeteer from "puppeteer";
-import { GoogleGenAI } from "@google/genai";
+import { startServer } from "./server.js";
 
 // Load the API key from an environment variable
-const API_KEY = process.env.GEMINI_API_KEY;
 
-if (!API_KEY) {
-  console.error("Error: GEMINI_API_KEY environment variable not set.");
-  process.exit(1);
-}
+const targetMap = new Map();
 
-const ai = new GoogleGenAI({ apiKey: API_KEY });
+// Attach the interceptor only once per page.
+const attach = async (target) => {
+  if (targetMap.has(target._targetId)) {
+    return; // Already attached
+  }
 
-async function run() {
-  const browser = await puppeteer.launch({
-    headless: false,
-    defaultViewport: null,
-  });
-  const page = await browser.newPage();
+  console.log(`Attaching interceptor to page: ${target.url()}`);
+  const client = await target.createCDPSession();
+  targetMap.set(target._targetId, client);
 
-  await page.setRequestInterception(true);
-
-  page.on("request", async (interceptedRequest) => {
-    const url = interceptedRequest.url();
-    const resourceType = interceptedRequest.resourceType();
+  client.on("Fetch.requestPaused", async (event) => {
+    const { requestId, request, resourceType } = event;
+    console.log(`Fetch paused for: ${request.method} ${request.url}`);
 
     try {
-      let prompt;
-      let contentType;
-      let model = "gemini-2.5-flash"; // Default model
+      if (resourceType === "Document") {
+        // Act as a proxy: fetch the content from the local server ourselves.
+        const proxyUrl = `http://${hostname}:${port}/html?url=${encodeURIComponent(
+          request.url
+        )}&type=${resourceType}&headers=${encodeURIComponent(
+          JSON.stringify(request.headers)
+        )}`;
 
-      if (resourceType === "document") {
-        prompt = `Create the HTML for a web page that would be served at the URL: ${url}. The page should be visually appealing and relevant to the URL.
-        
-        Relevant details about the request:
-        
-        - URL: ${url}
-        - Resource Type: ${resourceType}
-        - Headers: ${JSON.stringify(interceptedRequest.headers(), null, 2)}
-        
-        Response requirements:
-        - Please ensure the HTML is well-structured and includes modern web design practices. 
-        - Include basic CSS styles within a <style> tag in the <head> section.
-        - Only return the HTML content without any additional explanations or markdown formatting.`;
-        contentType = "text/html";
-      } else if (resourceType === "stylesheet") {
-        prompt = `Create the CSS styles for a web page at the URL: ${url}. The styles should be modern and clean.`;
-        contentType = "text/css";
-      } else if (resourceType === "script") {
-        prompt = `Create the JavaScript code for a web page at the URL: ${url}. The script should add some interactivity to the page.`;
-        contentType = "application/javascript";
-      } else if (resourceType === "image") {
-        // This is a more complex case. For now, we'll return a placeholder.
-        // A more advanced implementation could generate an image or fetch one from a service.
-        const truncatedUrl = url.length > 50 ? url.slice(0, 47) + "..." : url;
-        console.log(`Skipping image request: ${truncatedUrl}`);
-        interceptedRequest.continue();
-        return;
+        const response = await new Promise((resolve, reject) => {
+          http
+            .get(proxyUrl, (res) => {
+              let data = "";
+              res.on("data", (chunk) => (data += chunk));
+              res.on("end", () =>
+                resolve({ statusCode: res.statusCode, body: data })
+              );
+            })
+            .on("error", (err) => reject(err));
+        });
+
+        // Fulfill the browser's request with the response from our server.
+        await client.send("Fetch.fulfillRequest", {
+          requestId,
+          responseCode: response.statusCode,
+          body: Buffer.from(response.body).toString("base64"),
+          responseHeaders: [{ name: "Content-Type", value: "text/html" }],
+        });
+      } else if (resourceType === "Image") {
+        // Act as a proxy for images as well.
+        const proxyUrl = `http://${hostname}:${port}/image?url=${encodeURIComponent(
+          request.url
+        )}&type=${resourceType}&headers=${encodeURIComponent(
+          JSON.stringify(request.headers)
+        )}`;
+
+        const response = await new Promise((resolve, reject) => {
+          http
+            .get(proxyUrl, (res) => {
+              const chunks = [];
+              res.on("data", (chunk) => chunks.push(chunk));
+              res.on("end", () =>
+                resolve({
+                  statusCode: res.statusCode,
+                  headers: res.headers,
+                  body: Buffer.concat(chunks),
+                })
+              );
+            })
+            .on("error", (err) => reject(err));
+        });
+
+        // Fulfill the browser's request with the response from our server.
+        await client.send("Fetch.fulfillRequest", {
+          requestId,
+          responseCode: response.statusCode,
+          body: response.body.toString("base64"),
+          responseHeaders: Object.entries(response.headers).map(
+            ([name, value]) => ({
+              name,
+              value: Array.isArray(value) ? value.join(", ") : value,
+            })
+          ),
+        });
       } else {
-        interceptedRequest.continue();
-        return;
+        // Abort all other requests (CSS, JS, etc.)
+        await client.send("Fetch.failRequest", {
+          requestId,
+          errorReason: "Aborted",
+        });
       }
-
-      console.log(`Generating content for: ${url} (${resourceType})`);
-      const response = await ai.models.generateContent({
-        model,
-        contents: prompt,
-      });
-      const text = response.text;
-      console.log(`Generated content for ${url} (${resourceType}):\n`, text);
-
-      // Clean up the response from Gemini, which often includes markdown fences
-      const cleanedText = text
-        .replace(/```(html|css|javascript)?/g, "")
-        .replace(/```/g, "")
-        .trim();
-
-      interceptedRequest.respond({
-        status: 200,
-        contentType: contentType,
-        body: cleanedText,
-      });
     } catch (error) {
-      console.error(`Failed to generate content for ${url}:`, error);
-      interceptedRequest.abort();
+      console.error(`Error handling request ${requestId}: ${error.message}`);
+      // If something goes wrong, abort the request to prevent hangs.
+      try {
+        await client.send("Fetch.failRequest", {
+          requestId,
+          errorReason: "Failed",
+        });
+      } catch (e) {
+        // Ignore errors here, session might be gone.
+      }
     }
   });
 
-  console.log(
-    "WebSim is running. Navigate to any URL in the browser to generate a page."
-  );
-}
+  await client.send("Fetch.enable", {
+    patterns: [{ urlPattern: "*", requestStage: "Request" }],
+  });
+};
 
-run();
+// Main function to launch Puppeteer and set up interception
+(async () => {
+  const browser = await puppeteer.launch({
+    headless: false,
+    defaultViewport: null,
+    devtools: true,
+  });
+
+  browser.on("targetcreated", async (target) => {
+    if (target.type() === "page") {
+      await attach(target);
+    }
+  });
+
+  for (const target of browser.targets()) {
+    if (target.type() === "page") {
+      await attach(target);
+    }
+  }
+})();
+
+const hostname = "127.0.0.1";
+const port = 3001;
+const API_KEY = process.env.GEMINI_API_KEY;
+
+startServer(hostname, port, API_KEY);

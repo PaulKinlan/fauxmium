@@ -1,0 +1,123 @@
+import http from "http";
+import { GoogleGenAI } from "@google/genai";
+import { streamCodeBlocks } from "./lib/streamCodeBlocks.js";
+
+export function startServer(hostname, port, API_KEY) {
+  const ai = new GoogleGenAI({ apiKey: API_KEY });
+
+  const server = http.createServer(async (req, res) => {
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "text/html");
+    const url = new URL(req.url, `http://${req.headers.host}`);
+
+    if (url.pathname === "/html") {
+      const requestUrl = url.searchParams.get("url");
+      const requestType = url.searchParams.get("type");
+      const requestHeaders = url.searchParams.get("headers");
+      console.log(`Server generating content for: ${requestUrl}`);
+      try {
+        const prompt = `Create the HTML for a web page that would be served at the URL: ${requestUrl}. The page should be visually appealing and relevant to the URL.
+    
+Relevant details about the request:
+- URL: ${requestUrl}
+- Resource Type: ${requestType}
+- Headers: ${requestHeaders}
+
+Response requirements:
+- Please ensure the HTML is well-structured and includes modern web design practices. 
+- Image src urls must be highly descriptive by encoding the alt text as the URL (e.g., <img src="https://example.com/images/beautiful-sunset-over-north-wales.jpg?description=beautiful+sunset+over+north+wales" alt="beautiful sunset over north wales">)
+- Prefer that links aren't # instead are full paths.
+- Links must not include target="_blank" or similar attributes.
+- Include basic CSS styles within a <style> tag in the <head> section.
+- Only return the HTML content (inside a code fence) without any additional explanations`;
+
+        const response = await ai.models.generateContentStream({
+          model: "gemini-2.5-flash-lite",
+          contents: prompt,
+        });
+
+        // We still stream from the AI, but we buffer the response to send back to the proxy.
+        let fullBody = "";
+        const htmlCodeStream = streamCodeBlocks("html", response);
+        for await (const codeChunk of htmlCodeStream) {
+          fullBody += codeChunk;
+        }
+        res.end(fullBody);
+      } catch (error) {
+        console.error(`Failed to generate content for ${requestUrl}:`, error);
+        res.end(
+          `<html><body><h1>Error</h1><p>Failed to generate content for ${requestUrl}</p><pre>${error.message}</pre></body></html>`
+        );
+      }
+    } else if (url.pathname === "/image") {
+      const requestUrl = url.searchParams.get("url");
+      const newUrl = new URL(requestUrl);
+      const description = newUrl.searchParams.get("description");
+
+      console.log(
+        `Image request for URL: ${requestUrl} with description: ${description}`
+      );
+      console.log(`Server generating image for: ${requestUrl}`);
+      try {
+        const prompt = `Create an image that is visually appealing matching the following description: ${
+          description || requestUrl
+        }`;
+
+        const response = await ai.models.generateContent({
+          model: "gemini-2.5-flash-image-preview",
+          contents: prompt,
+          config: {
+            personGeneration: "allow_adult",
+            responseModalities: ["IMAGE"],
+          },
+        });
+
+        if (
+          response.candidates.length === 0 ||
+          !response.candidates[0].content
+        ) {
+          console.log("Prompt feedback:", response);
+
+          throw new Error("No candidates in AI response");
+        }
+
+        const aiImageResponse = response.candidates[0].content.parts.find(
+          (part) => "inlineData" in part
+        );
+
+        // Check if we have inline data (base64 image)
+        if (!aiImageResponse.inlineData || !aiImageResponse.inlineData.data) {
+          console.log(response.candidates[0].content);
+          throw new Error("No image data in AI response");
+        }
+
+        // Convert base64 to binary data
+        const base64Data = aiImageResponse.inlineData.data;
+        const mimeType = aiImageResponse.inlineData.mimeType || "image/png";
+
+        // Decode base64 to binary
+        const binaryData = Uint8Array.from(atob(base64Data), (c) =>
+          c.charCodeAt(0)
+        );
+
+        // Return binary data with proper content type
+        res.setHeader("Content-Type", mimeType);
+        res.setHeader("Content-Length", binaryData.length.toString());
+        res.end(binaryData);
+      } catch (e) {
+        console.error(`Failed to generate image for ${requestUrl}:`);
+        console.error("error name: ", e.name);
+        console.error("error message: ", e.message);
+        console.error("error status: ", e.status);
+        // Return a placeholder image or error message
+        res.statusCode = 500;
+        res.setHeader("Content-Type", "text/plain");
+        res.end(`Error generating image: ${e.message}`);
+      }
+    }
+  });
+
+  server.listen(port, hostname, () => {
+    console.log(`Server running at http://${hostname}:${port}/`);
+  });
+}
