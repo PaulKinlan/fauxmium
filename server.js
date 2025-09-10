@@ -12,6 +12,13 @@ export function startServer(hostname, port, API_KEY) {
     res.setHeader("Content-Type", "text/html");
     const url = new URL(req.url, `http://${req.headers.host}`);
 
+    if (url.pathname === "/test") {
+      console.log(`Serving static test page for:`, req.url);
+      return res.end(
+        `<html><body><h1>Test Page</h1><p>This is a test page.</p><a href="https://news.bbc.co.uk">BBC News - Test navigation to another origin</a></body></html>`
+      );
+    }
+
     if (url.pathname === "/html") {
       const requestUrl = url.searchParams.get("url");
       const requestType = url.searchParams.get("type");
