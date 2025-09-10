@@ -244,6 +244,7 @@ Response requirements:
         model: "gemini-2.5-flash-image-preview",
         contents: prompt,
         config: {
+          personGeneration: "allow_adult",
           responseModalities: ["IMAGE"],
         },
       });
