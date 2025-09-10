@@ -1,6 +1,8 @@
 import http from "http";
+import fs from "fs/promises";
 import { GoogleGenAI } from "@google/genai";
 import { streamCodeBlocks } from "./lib/streamCodeBlocks.js";
+import { generatePrompt } from "./lib/prompts.js";
 
 export function startServer(hostname, port, API_KEY) {
   const ai = new GoogleGenAI({ apiKey: API_KEY });
@@ -16,20 +18,11 @@ export function startServer(hostname, port, API_KEY) {
       const requestHeaders = url.searchParams.get("headers");
       console.log(`Server generating content for: ${requestUrl}`);
       try {
-        const prompt = `Create the HTML for a web page that would be served at the URL: ${requestUrl}. The page should be visually appealing and relevant to the URL.
-    
-Relevant details about the request:
-- URL: ${requestUrl}
-- Resource Type: ${requestType}
-- Headers: ${requestHeaders}
-
-Response requirements:
-- Please ensure the HTML is well-structured and includes modern web design practices. 
-- Image src urls must be highly descriptive by encoding the alt text as the URL (e.g., <img src="https://example.com/images/beautiful-sunset-over-north-wales.jpg?description=beautiful+sunset+over+north+wales" alt="beautiful sunset over north wales">)
-- Prefer that links aren't # instead are full paths.
-- Links must not include target="_blank" or similar attributes.
-- Include basic CSS styles within a <style> tag in the <head> section.
-- Only return the HTML content (inside a code fence) without any additional explanations`;
+        const prompt = await generatePrompt("html", {
+          requestUrl,
+          requestType,
+          requestHeaders,
+        });
 
         const response = await ai.models.generateContentStream({
           model: "gemini-2.5-flash-lite",
@@ -59,9 +52,9 @@ Response requirements:
       );
       console.log(`Server generating image for: ${requestUrl}`);
       try {
-        const prompt = `Create an image that is visually appealing matching the following description: ${
-          description || requestUrl
-        }`;
+        const prompt = await generatePrompt("image", {
+          description: description || requestUrl,
+        });
 
         const response = await ai.models.generateContent({
           model: "gemini-2.5-flash-image-preview",

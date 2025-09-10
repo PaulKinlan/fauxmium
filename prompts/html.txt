@@ -1,0 +1,14 @@
+Create the HTML for a web page that would be served at the URL: ###requestUrl###. The page should be visually appealing and relevant to the URL.
+
+Relevant details about the request:
+- URL: ###requestUrl###
+- Resource Type: ###requestType###
+- Headers: ###requestHeaders###
+
+Response requirements:
+- Please ensure the HTML is well-structured and includes modern web design practices.
+- Image src urls must be highly descriptive by encoding the alt text as the URL (e.g., <img src="https://example.com/images/beautiful-sunset-over-north-wales.jpg?description=beautiful+sunset+over+north+wales" alt="beautiful sunset over north wales">)
+- Prefer that links aren't # instead are full paths.
+- Links must not include target="_blank" or similar attributes.
+- Include basic CSS styles within a <style> tag in the <head> section.
+- Only return the HTML content (inside a code fence) without any additional explanations
