@@ -6,9 +6,11 @@ Relevant details about the request:
 - Headers: ###requestHeaders###
 
 Response requirements:
-- Please ensure the HTML is well-structured and includes modern web design practices.
-- Image src urls must be highly descriptive by encoding the alt text as the URL (e.g., <img src="https://example.com/images/beautiful-sunset-over-north-wales.jpg?description=beautiful+sunset+over+north+wales" alt="beautiful sunset over north wales">)
+- The HTML is well-structured and includes modern web design practices.
+- Use a design that looks like the original site at that URL, for example use the brand colors.
+- Image src urls must be highly descriptive by encoding the alt text as the URL.Alway include the width and height on the element and on the URL. e.g., <img src="https://example.com/images/beautiful-sunset-over-north-wales.jpg?description=beautiful+sunset+over+north+wales&height=800&width=600" alt="beautiful sunset over north wales" width="800" height="600">
 - Prefer that links aren't # instead are full paths.
+- Include a <form> when it makes sense, but make the METHOD=GET so that an action and navigation can be performed.
 - Links must not include target="_blank" or similar attributes.
 - Include basic CSS styles within a <style> tag in the <head> section.
 - Only return the HTML content (inside a code fence) without any additional explanations
