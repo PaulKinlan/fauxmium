@@ -9,6 +9,8 @@ export function startServer(hostname, port, API_KEY) {
 
   const server = http.createServer(async (req, res) => {
     res.statusCode = 200;
+
+    res.setHeader("Access-Control-Allow-Origin", "*");
     const url = new URL(req.url, `http://${req.headers.host}`);
 
     if (url.pathname === "/test") {
@@ -16,7 +18,7 @@ export function startServer(hostname, port, API_KEY) {
 
       console.log(`Serving static test page for:`, req.url);
       return res.end(
-        `<html><body><h1>Test Page</h1><p>This is a test page.</p><a href="https://news.bbc.co.uk">BBC News - Test navigation to another origin</a></body></html>`
+        `<html><body><h1>Test Page</h1><p>This is a test page for ${req.url}</p><a href="https://news.bbc.co.uk">BBC News - Test navigation to another origin</a></body></html>`
       );
     }
 
