@@ -13,5 +13,6 @@ Response requirements:
 - All links MUST be https://
 - Include a <form> when it makes sense, but make the METHOD=GET so that an action and navigation can be performed.
 - Links must not include target="_blank" or similar attributes.
-- Include basic CSS styles within a <style> tag in the <head> section.
+- Include CSS styles within a <style> tag in the <head> section.
+- Include JavaScript within a <script> tag in the <head> section.
 - Only return the HTML content (inside a code fence) without any additional explanations
