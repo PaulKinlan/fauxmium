@@ -41,13 +41,7 @@ import { startServer } from "../server.js";
 async function setupRequestInterception(page) {
   // Enable request interception
   await page.setRequestInterception(true);
-  let shouldReload = false;
 
-  // page.on("load", async () => {
-  //   console.log("Page loaded:", page.url());
-  //   // await page.setRequestInterception(false);
-  //   // await page.setRequestInterception(true);
-  // });
   // Listen for 'request' events
   page.on("request", async (request) => {
     // Check if the request URL matches a specific pattern
@@ -58,11 +52,6 @@ async function setupRequestInterception(page) {
 
     if (method === "GET" && request.isNavigationRequest()) {
       // This is a hack because a 2nd navigation results in Chrome blocking the request.
-      if (shouldReload == true) {
-        page.goto(url);
-        shouldReload = false;
-        return;
-      }
 
       const proxyUrl = `http://${hostname}:${port}/html?url=${encodeURIComponent(
         url
@@ -76,7 +65,6 @@ async function setupRequestInterception(page) {
       await request.continue({
         url: proxyUrl,
       });
-      shouldReload = true;
 
       console.log("AFTER", request.interceptResolutionState());
     } else {

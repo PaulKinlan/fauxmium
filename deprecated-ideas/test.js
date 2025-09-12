@@ -1,5 +1,4 @@
 import puppeteer from "puppeteer";
-import crypto from "crypto"; // Used to generate a unique ID for the blob
 import { GoogleGenAI } from "@google/genai";
 
 // Load the API key from an environment variable

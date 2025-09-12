@@ -9,17 +9,27 @@ export function startServer(hostname, port, API_KEY) {
 
   const server = http.createServer(async (req, res) => {
     res.statusCode = 200;
-    res.setHeader("Content-Type", "text/html");
     const url = new URL(req.url, `http://${req.headers.host}`);
 
     if (url.pathname === "/test") {
+      res.setHeader("Content-Type", "text/html");
+
       console.log(`Serving static test page for:`, req.url);
       return res.end(
         `<html><body><h1>Test Page</h1><p>This is a test page.</p><a href="https://news.bbc.co.uk">BBC News - Test navigation to another origin</a></body></html>`
       );
     }
 
+    if (url.pathname === "/test-image") {
+      res.setHeader("Content-Type", "image/webp");
+
+      console.log(`Serving static image page for:`, req.url);
+      return res.end(fs.readFile("./test/test.webp"));
+    }
+
     if (url.pathname === "/html") {
+      let contentType = "text/html";
+      res.setHeader("Content-Type", contentType);
       const requestUrl = url.searchParams.get("url");
       const requestType = url.searchParams.get("type");
       const requestHeaders = url.searchParams.get("headers");
@@ -40,9 +50,9 @@ export function startServer(hostname, port, API_KEY) {
         let fullBody = "";
         const htmlCodeStream = streamCodeBlocks("html", response);
         for await (const codeChunk of htmlCodeStream) {
-          fullBody += codeChunk;
+          res.write(codeChunk);
         }
-        res.end(fullBody);
+        res.end();
       } catch (error) {
         console.error(`Failed to generate content for ${requestUrl}:`, error);
         res.end(
@@ -53,6 +63,9 @@ export function startServer(hostname, port, API_KEY) {
       const requestUrl = url.searchParams.get("url");
       const newUrl = new URL(requestUrl);
       const description = newUrl.searchParams.get("description");
+
+      let contentType = "image/png";
+      res.setHeader("Content-Type", contentType);
 
       console.log(
         `Image request for URL: ${requestUrl} with description: ${description}`
