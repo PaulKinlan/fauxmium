@@ -1,6 +1,8 @@
 import puppeteer from "puppeteer";
 import { startServer } from "../server.js";
 
+// to run: node.js deprecated-ideas/cdp.js
+
 (async () => {
   // 1. Launch a browser instance
   const browser = await puppeteer.launch({
