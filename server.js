@@ -44,7 +44,7 @@ export function startServer(hostname, port, API_KEY) {
         });
 
         const response = await ai.models.generateContentStream({
-          model: "gemini-2.5-flash-lite",
+          model: "gemini-2.5-flash",
           contents: prompt,
         });
 
