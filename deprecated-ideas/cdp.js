@@ -80,7 +80,7 @@ import { startServer } from "../server.js";
         return;
       }
 
-      // Allow the request to continue without modification
+      // Don't proxy other requests, just fail.
       await cdpSession.send("Fetch.failRequest", {
         requestId,
         errorReason: "Aborted",
