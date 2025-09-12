@@ -89,6 +89,7 @@ async function setupRequestInterception(page) {
   const pages = await browser.pages();
 
   for (const page of pages) {
+    page.setDefaultNavigationTimeout(0);
     await setupRequestInterception(page);
   }
 })();
