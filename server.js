@@ -26,6 +26,7 @@ export function startServer(
       const requestHeaders = url.searchParams.get("headers");
       console.log(`Server generating content for: ${requestUrl}`);
       try {
+        // We load the prompt from disk and interpolate values so that we can change it without restarting the server.
         const prompt = await generatePrompt("html", {
           requestUrl,
           requestType,
