@@ -3,7 +3,13 @@ import { GoogleGenAI } from "@google/genai";
 import { streamCodeBlocks } from "./lib/streamCodeBlocks.js";
 import { generatePrompt } from "./lib/prompts.js";
 
-export function startServer(hostname, port, API_KEY) {
+export function startServer(
+  hostname,
+  port,
+  API_KEY,
+  textGenerationModel,
+  imageGenerationModel
+) {
   const ai = new GoogleGenAI({ apiKey: API_KEY });
 
   const server = http.createServer(async (req, res) => {
@@ -27,7 +33,7 @@ export function startServer(hostname, port, API_KEY) {
         });
 
         const response = await ai.models.generateContentStream({
-          model: "gemini-2.5-flash",
+          model: textGenerationModel,
           contents: prompt,
         });
 
@@ -61,7 +67,7 @@ export function startServer(hostname, port, API_KEY) {
         });
 
         const response = await ai.models.generateContent({
-          model: "gemini-2.5-flash-image-preview",
+          model: imageGenerationModel,
           contents: prompt,
           config: {
             personGeneration: "allow_adult",

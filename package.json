@@ -24,6 +24,7 @@
   "dependencies": {
     "@google/genai": "^1.17.0",
     "dotenv": "^17.2.2",
-    "puppeteer": "*"
+    "puppeteer": "*",
+    "yargs": "^18.0.0"
   }
 }
