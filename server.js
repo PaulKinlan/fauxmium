@@ -9,8 +9,8 @@ export function startServer(hostname, port, API_KEY) {
 
   const server = http.createServer(async (req, res) => {
     res.statusCode = 200;
-
     res.setHeader("Access-Control-Allow-Origin", "*");
+
     const url = new URL(req.url, `http://${req.headers.host}`);
 
     if (url.pathname === "/html") {
@@ -112,6 +112,10 @@ export function startServer(hostname, port, API_KEY) {
         res.setHeader("Content-Type", "text/plain");
         res.end(`Error generating image: ${e.message}`);
       }
+    } else {
+      res.statusCode = 404;
+      res.setHeader("Content-Type", "text/plain");
+      res.end("Not Found");
     }
   });
 

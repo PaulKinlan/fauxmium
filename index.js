@@ -1,9 +1,12 @@
-import http from "http";
+#!/usr/bin/env node
+
 import puppeteer from "puppeteer";
+import "dotenv/config";
 import { startServer } from "./server.js";
 
 async function setupRequestInterception(page) {
   // Enable request interception
+  page.setDefaultNavigationTimeout(0);
   await page.setRequestInterception(true);
 
   // Listen for 'request' events
@@ -71,10 +74,16 @@ async function setupRequestInterception(page) {
     devtools: true,
   });
 
+  browser.on("targetcreated", async (target) => {
+    if (target.type() === "page") {
+      const newPage = await target.page();
+      await setupRequestInterception(newPage);
+    }
+  });
+
   const pages = await browser.pages();
 
   for (const page of pages) {
-    page.setDefaultNavigationTimeout(0);
     await setupRequestInterception(page);
   }
 })();
@@ -82,5 +91,13 @@ async function setupRequestInterception(page) {
 const hostname = "127.0.0.1";
 const port = 3001;
 const API_KEY = process.env.GEMINI_API_KEY;
+
+if (!API_KEY) {
+  console.warn(
+    "No GEMINI_API_KEY found in environment variables. Please set it in a .env file or your environment."
+  );
+
+  process.exit(1);
+}
 
 startServer(hostname, port, API_KEY);
