@@ -10,12 +10,31 @@ This demo is a proof of concept that shows how you can use generative AI to crea
 
 `npx fauxmium`
 
+### Setup
+
+This project requires a Google Gemini API Key.
+
+1.  Create a `.env` file in the root of the project.
+2.  Add your API key to the `.env` file:
+
+    ```
+    API_KEY=your_api_key_here
+    ```
+
 ### Command-line options
 
 - `--port` or `-p`: The port to run the server on. Defaults to `3001`.
 - `--hostname` or `-H`: The hostname to run the server on. Defaults to `127.0.0.1`.
 - `--text-generation-model` or `-t`: The model to use for text generation. Defaults to `gemini-2.5-flash-lite`.
 - `--image-generation-model` or `-i`: The model to use for image generation. Defaults to `gemini-2.5-flash-image-preview`.
+
+### Examples
+
+Run on a different port with a specific model:
+
+```bash
+npx fauxmium --port 8080 --text-generation-model gemini-pro
+```
 
 ## Architecture
 
@@ -28,3 +47,16 @@ This project works by intercepting browser requests and generating content using
     - For page navigations, it generates a prompt based on the URL and streams the resulting HTML back to the browser.
     - For image requests, it generates a prompt and returns an AI-generated image.
 5.  **Simulated Browsing**: The browser renders the AI-generated content, creating a simulated experience of browsing a fictitious web.
+
+## Limitations
+
+- **No CSS or JavaScript**: The current version only generates HTML and images. It does not support generating external CSS or JavaScript files for example.
+- **Stateless**: Each page is generated independently. There is no memory or state between navigations, this also includes image generation which currently has not context of where it is placed on the page.
+
+## Contributing
+
+Contributions are welcome! If you have ideas for new features, improvements, or bug fixes, please open an issue or submit a pull request.
+
+## License
+
+This project is licensed under the Apache-2.0 License. See the `LICENCE` file for details.
