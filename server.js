@@ -1,5 +1,4 @@
 import http from "http";
-import fs from "fs/promises";
 import { GoogleGenAI } from "@google/genai";
 import { streamCodeBlocks } from "./lib/streamCodeBlocks.js";
 import { generatePrompt } from "./lib/prompts.js";
