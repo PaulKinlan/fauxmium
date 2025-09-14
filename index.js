@@ -5,7 +5,6 @@ import { startServer } from "./server.js";
 async function setupRequestInterception(page) {
   // Enable request interception
   await page.setRequestInterception(true);
-  let shouldReload = false;
 
   // Listen for 'request' events
   page.on("request", async (request) => {
@@ -15,13 +14,11 @@ async function setupRequestInterception(page) {
     const method = request.method();
     const headers = request.headers();
 
+    // Waiting on https://chromium-review.googlesource.com/c/chromium/src/+/6945075 - Thank you Andrey
+    const newHeaders = { ...headers, Referer: "" };
+
     if (method === "GET" && request.isNavigationRequest()) {
       // This is a hack because a 2nd navigation results in Chrome blocking the request.
-      if (shouldReload == true) {
-        page.goto(url);
-        shouldReload = false;
-        return;
-      }
 
       const proxyUrl = `http://${hostname}:${port}/html?url=${encodeURIComponent(
         url
@@ -34,8 +31,8 @@ async function setupRequestInterception(page) {
       // Continue the request with the new URL
       await request.continue({
         url: proxyUrl,
+        headers: newHeaders,
       });
-      shouldReload = true;
 
       console.log("AFTER", request.interceptResolutionState());
     } else {
@@ -49,27 +46,15 @@ async function setupRequestInterception(page) {
         console.log("Resource Type", resourceType);
         console.log("BEFORE", request.interceptResolutionState());
 
-        const response = await new Promise((resolve, reject) => {
-          http
-            .get(proxyUrl, (res) => {
-              const chunks = [];
-              res.on("data", (chunk) => chunks.push(chunk));
-              res.on("end", () =>
-                resolve({
-                  statusCode: res.statusCode,
-                  headers: res.headers,
-                  body: Buffer.concat(chunks),
-                })
-              );
-            })
-            .on("error", (err) => reject(err));
+        // new way
+
+        await request.continue({
+          url: proxyUrl,
+          headers: newHeaders,
         });
-        await request.respond({
-          status: response.statusCode,
-          headers: response.headers,
-          body: response.body,
-        });
+
         console.log("AFTER", request.interceptResolutionState());
+        return;
       } else {
         // For all other requests, continue without changes
         await request.respond("");

@@ -6,8 +6,9 @@ Relevant details about the request:
 - Headers: ###requestHeaders###
 
 Response requirements:
-- The HTML is well-structured and includes modern web design practices.
+- The HTML is well-structured, accessible, responsive and includes modern web design practices.
 - Use a design that looks like the original site at that URL, for example use the brand colors.
+- Use the Headers to determine what capabilities that you can render (such as HTML, CSS and JavaScript functionality)
 - Image src urls must be highly descriptive by encoding the alt text as the URL.Alway include the width and height on the element and on the URL. e.g., <img src="https://example.com/images/beautiful-sunset-over-north-wales.jpg?description=beautiful+sunset+over+north+wales&height=800&width=600" alt="beautiful sunset over north wales" width="800" height="600">
 - Prefer that links aren't # instead are full paths.
 - All links MUST be https://

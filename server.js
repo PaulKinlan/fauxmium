@@ -13,22 +13,6 @@ export function startServer(hostname, port, API_KEY) {
     res.setHeader("Access-Control-Allow-Origin", "*");
     const url = new URL(req.url, `http://${req.headers.host}`);
 
-    if (url.pathname === "/test") {
-      res.setHeader("Content-Type", "text/html");
-
-      console.log(`Serving static test page for:`, req.url);
-      return res.end(
-        `<html><body><h1>Test Page</h1><p>This is a test page for ${req.url}</p><a href="https://news.bbc.co.uk">BBC News - Test navigation to another origin</a></body></html>`
-      );
-    }
-
-    if (url.pathname === "/test-image") {
-      res.setHeader("Content-Type", "image/webp");
-
-      console.log(`Serving static image page for:`, req.url);
-      return res.end(fs.readFile("./test/test.webp"));
-    }
-
     if (url.pathname === "/html") {
       let contentType = "text/html";
       res.setHeader("Content-Type", contentType);
@@ -49,7 +33,6 @@ export function startServer(hostname, port, API_KEY) {
         });
 
         // We still stream from the AI, but we buffer the response to send back to the proxy.
-        let fullBody = "";
         const htmlCodeStream = streamCodeBlocks("html", response);
         for await (const codeChunk of htmlCodeStream) {
           res.write(codeChunk);
