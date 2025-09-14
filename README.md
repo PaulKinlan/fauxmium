@@ -8,6 +8,13 @@ This demo is a proof of concept that shows how you can use generative AI to crea
 
 `npx fauxmium`
 
+### Command-line options
+
+- `--port` or `-p`: The port to run the server on. Defaults to `3001`.
+- `--hostname` or `-H`: The hostname to run the server on. Defaults to `127.0.0.1`.
+- `--text-generation-model` or `-t`: The model to use for text generation. Defaults to `gemini-2.5-flash-lite`.
+- `--image-generation-model` or `-i`: The model to use for image generation. Defaults to `gemini-2.5-flash-image-preview`.
+
 ## Architecture
 
 This project works by intercepting browser requests and generating content using a generative AI model. Here's a breakdown of the process:
