@@ -17,6 +17,10 @@
   ],
   "author": "Paul Kinlan",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:PaulKinlan/fauxmium.git"
+  },
   "dependencies": {
     "@google/genai": "^1.17.0",
     "dotenv": "^17.2.2",

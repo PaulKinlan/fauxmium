@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-import puppeteer from "puppeteer";
 import "dotenv/config";
+import puppeteer from "puppeteer";
 import { startServer } from "./server.js";
 
 async function setupRequestInterception(page) {
@@ -21,8 +21,6 @@ async function setupRequestInterception(page) {
     const newHeaders = { ...headers, Referer: "" };
 
     if (method === "GET" && request.isNavigationRequest()) {
-      // This is a hack because a 2nd navigation results in Chrome blocking the request.
-
       const proxyUrl = `http://${hostname}:${port}/html?url=${encodeURIComponent(
         url
       )}&type=${resourceType}&headers=${encodeURIComponent(
@@ -94,7 +92,7 @@ const API_KEY = process.env.GEMINI_API_KEY;
 
 if (!API_KEY) {
   console.warn(
-    "No GEMINI_API_KEY found in environment variables. Please set it in a .env file or your environment."
+    "No GEMINI_API_KEY found in environment variables. Please set it in a .env file or your environment.\nYou can get an API key from https://aistudio.google.com/apikey"
   );
 
   process.exit(1);
