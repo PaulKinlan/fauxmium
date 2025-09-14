@@ -1,8 +1,10 @@
 ## The Infinite Generated Web
 
-** Everything that you see inside the browser when you use this demo is generated on the fly. It is not real! **
+**Everything that you see inside the browser when you use this demo is generated on the fly. It is not real!**
 
-This demo is a proof of concept that shows how you can use generative AI to create an infinite number of websites as you browse. It uses Chrome for Testers and Puppeteer to intercept every single request that is made from the page and route it to Gemini, and the response is used to generate the content on the page.
+**This demo is not affiliated with my employer or any of its products.**
+
+This demo is a proof of concept that shows how you can use generative AI to create an infinite number of websites as you browse. It uses Chrome for Testers and [Puppeteer](https://pptr.dev/) to intercept every single request that is made from the page and route it to Gemini, and the response is used to generate the content on the page.
 
 ## How to run
 
