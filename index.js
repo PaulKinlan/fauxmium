@@ -31,12 +31,18 @@ const argv = yargs(hideBin(process.argv))
     type: "string",
     default: "gemini-2.5-flash-image-preview",
     description: "The model to use for image generation",
+  })
+  .option("devtools", {
+    type: "boolean",
+    default: false,
+    description: "Open DevTools on launch",
   }).argv;
 
 const hostname = argv.hostname;
 const port = argv.port;
 const textGenerationModel = argv["text-generation-model"];
 const imageGenerationModel = argv["image-generation-model"];
+const enableDevTools = argv["devtools"];
 const API_KEY = process.env.GEMINI_API_KEY;
 
 if (!API_KEY) {
@@ -52,4 +58,4 @@ console.log(`Using text generation model: ${textGenerationModel}`);
 console.log(`Using image generation model: ${imageGenerationModel}`);
 
 startServer(hostname, port, API_KEY, textGenerationModel, imageGenerationModel);
-startBrowser(hostname, port);
+startBrowser(hostname, port, enableDevTools);

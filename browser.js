@@ -1,12 +1,12 @@
 import puppeteer from "puppeteer";
 
-function startBrowser(hostname, port) {
+function startBrowser(hostname, port, devtools) {
   // Main function to launch Puppeteer and set up interception
   (async () => {
     const browser = await puppeteer.launch({
       headless: false,
       defaultViewport: null,
-      devtools: true,
+      devtools,
     });
 
     browser.on("targetcreated", async (target) => {
