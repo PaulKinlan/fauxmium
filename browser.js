@@ -1,4 +1,6 @@
 import puppeteer from "puppeteer";
+import fs from "fs/promises";
+import path from "path";
 
 function startBrowser(hostname, port, devtools) {
   // Main function to launch Puppeteer and set up interception
@@ -18,8 +20,16 @@ function startBrowser(hostname, port, devtools) {
 
     const pages = await browser.pages();
 
+    const warningHtml = await fs.readFile(
+      path.join(process.cwd(), "prompts", "warning.html"),
+      "utf8"
+    );
+
     for (const page of pages) {
       await setupRequestInterception(page);
+
+      // Before the user starts to use the page, set up a warning to that they know it's not a real browser.
+      page.setContent(warningHtml);
     }
   })();
 
