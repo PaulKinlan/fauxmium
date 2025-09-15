@@ -1,6 +1,10 @@
-import puppeteer from "puppeteer";
 import fs from "fs/promises";
 import path from "path";
+import puppeteer from "puppeteer";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 function startBrowser(hostname, port, devtools) {
   // Main function to launch Puppeteer and set up interception
@@ -21,7 +25,7 @@ function startBrowser(hostname, port, devtools) {
     const pages = await browser.pages();
 
     const warningHtml = await fs.readFile(
-      path.join(process.cwd(), "pages", "warning.html"),
+      path.join(__dirname, "pages", "warning.html"),
       "utf8"
     );
 
