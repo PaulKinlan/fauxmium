@@ -39,47 +39,42 @@ function startBrowser(hostname, port) {
       // Waiting on https://chromium-review.googlesource.com/c/chromium/src/+/6945075 - Thank you Andrey
       const newHeaders = { ...headers, Referer: "" };
 
-      if (method === "GET" && request.isNavigationRequest()) {
-        const proxyUrl = `http://${hostname}:${port}/html?url=${encodeURIComponent(
+      if (method !== "GET") {
+        await request.respond("");
+        return;
+      }
+
+      if (!request.isNavigationRequest() && resourceType !== "image") {
+        await request.respond("");
+        return;
+      }
+
+      let proxyUrl = "";
+
+      if (request.isNavigationRequest()) {
+        proxyUrl = `http://${hostname}:${port}/html?url=${encodeURIComponent(
           url
         )}&type=${resourceType}&headers=${encodeURIComponent(
           JSON.stringify(headers)
         )}`;
-        console.log(`Redirecting request from ${url} to ${proxyUrl}`);
-        console.log("Resource Type", resourceType);
-        console.log("BEFORE", request.interceptResolutionState());
-        // Continue the request with the new URL
-        await request.continue({
-          url: proxyUrl,
-          headers: newHeaders,
-        });
-
-        console.log("AFTER", request.interceptResolutionState());
-      } else {
-        if (resourceType === "image") {
-          const proxyUrl = `http://${hostname}:${port}/image?url=${encodeURIComponent(
-            url
-          )}&type=${resourceType}&headers=${encodeURIComponent(
-            JSON.stringify(headers)
-          )}`;
-          console.log(`Redirecting image request from ${url} to ${proxyUrl}`);
-          console.log("Resource Type", resourceType);
-          console.log("BEFORE", request.interceptResolutionState());
-
-          // new way
-
-          await request.continue({
-            url: proxyUrl,
-            headers: newHeaders,
-          });
-
-          console.log("AFTER", request.interceptResolutionState());
-          return;
-        } else {
-          // For all other requests, continue without changes
-          await request.respond("");
-        }
+      } else if (resourceType === "image") {
+        proxyUrl = `http://${hostname}:${port}/image?url=${encodeURIComponent(
+          url
+        )}&headers=${encodeURIComponent(JSON.stringify(headers))}`;
       }
+
+      console.log(
+        `Redirecting ${resourceType} request from ${url} to ${proxyUrl}`
+      );
+
+      console.log("BEFORE", request.interceptResolutionState());
+
+      await request.continue({
+        url: proxyUrl,
+        headers: newHeaders,
+      });
+
+      console.log("AFTER", request.interceptResolutionState());
     });
   }
 }
