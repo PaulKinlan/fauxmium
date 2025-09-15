@@ -21,7 +21,7 @@ function startBrowser(hostname, port, devtools) {
     const pages = await browser.pages();
 
     const warningHtml = await fs.readFile(
-      path.join(process.cwd(), "prompts", "warning.html"),
+      path.join(process.cwd(), "pages", "warning.html"),
       "utf8"
     );
 
