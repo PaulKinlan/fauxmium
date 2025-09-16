@@ -2,6 +2,29 @@ import http from "http";
 import { GoogleGenAI } from "@google/genai";
 import { streamCodeBlocks } from "./lib/streamCodeBlocks.js";
 import { generatePrompt } from "./lib/prompts.js";
+import { costCalculator } from "./lib/costCalculator.js";
+
+/*
+ * Utility to stream code blocks from a text stream.
+ * This is useful when you want to extract code blocks from a markdown-like stream.
+ *
+ * responseGenerator is a generator function that takes a chunk and yields processed chunks so that they can be rendered
+ */
+async function* processChunks(processors, responseGenerator, chunkStream) {
+  for await (const chunk of chunkStream) {
+    for (const processor of processors) {
+      await processor(chunk);
+    }
+
+    yield* responseGenerator(chunk);
+  }
+
+  // Flush.
+  for (const processor of processors) {
+    await processor({ END: true });
+  }
+  yield* responseGenerator({ END: true });
+}
 
 export function startServer(
   hostname,
@@ -38,11 +61,23 @@ export function startServer(
           contents: prompt,
         });
 
-        // We still stream from the AI, but we buffer the response to send back to the proxy.
-        const htmlCodeStream = streamCodeBlocks("html", response);
-        for await (const codeChunk of htmlCodeStream) {
+        const calc = costCalculator();
+
+        const outputStream = processChunks(
+          [
+            (chunk) => {
+              console.log("Processing chunk:", JSON.stringify(chunk));
+            },
+            calc,
+          ],
+          streamCodeBlocks("html"),
+          response
+        );
+
+        for await (const codeChunk of outputStream) {
           res.write(codeChunk);
         }
+
         res.end();
       } catch (error) {
         console.error(`Failed to generate content for ${requestUrl}:`, error);
