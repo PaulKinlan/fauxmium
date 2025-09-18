@@ -3,7 +3,7 @@
 import "dotenv/config";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
-import { startServer } from "./server.js";
+import { startServer } from "./server/index.js";
 import { startBrowser } from "./browser.js";
 
 const argv = yargs(hideBin(process.argv))
