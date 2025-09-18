@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "Fauxmium Cost Tracker",
+  "version": "1.0",
+  "description": "Displays the cost of the Fauxmium session.",
+  "permissions": ["storage"],
+  "action": {
+    "default_popup": "popup.html"
+  }
+}

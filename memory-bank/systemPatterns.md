@@ -4,11 +4,12 @@ This document describes the system architecture, key technical decisions, design
 
 ## Architecture Overview
 
-The Fauxmium application is composed of three main components:
+The Fauxmium application is composed of four main components:
 
-1.  **Browser Controller (`browser.js`)**: Launches and manages a Puppeteer instance of Chrome. It is responsible for intercepting all navigation and image requests.
+1.  **Browser Controller (`browser.js`)**: Launches and manages a Puppeteer instance of Chrome. It is responsible for intercepting all navigation and image requests. It loads the Chrome extension using the `--load-extension` flag and passes the server configuration to it via the Chrome DevTools Protocol's `Extensions.setStorageItems` method.
 2.  **Proxy Server (`server.js`)**: An HTTP server that receives the intercepted requests from the browser. It communicates with the Google Gemini AI to generate content.
 3.  **Main Entry Point (`index.js`)**: Initializes the application, parses command-line arguments, and starts both the browser controller and the proxy server.
+4.  **Chrome Extension (`extension/`)**: A browser extension that displays the session costs by fetching data from the proxy server.
 
 The general flow is as follows:
 

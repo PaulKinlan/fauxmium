@@ -9,10 +9,13 @@ const __dirname = path.dirname(__filename);
 function startBrowser(hostname, port, devtools) {
   // Main function to launch Puppeteer and set up interception
   (async () => {
+    const extensionPath = path.join(__dirname, "extension");
     const browser = await puppeteer.launch({
       headless: false,
       defaultViewport: null,
       devtools,
+      pipe: true,
+      enableExtensions: true,
     });
 
     browser.on("targetcreated", async (target) => {
@@ -23,6 +26,20 @@ function startBrowser(hostname, port, devtools) {
     });
 
     const pages = await browser.pages();
+
+    const extension = await browser.installExtension(extensionPath);
+    console.log(`Extension installed:`, extension);
+
+    const cdpSession = await pages[0].createCDPSession();
+
+    await cdpSession.send("Extensions.setStorageItems", {
+      id: extension,
+      storageArea: "local",
+      values: {
+        hostname: hostname,
+        port: port,
+      },
+    });
 
     const warningHtml = await fs.readFile(
       path.join(__dirname, "pages", "warning.html"),

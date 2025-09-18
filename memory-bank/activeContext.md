@@ -4,10 +4,11 @@ This document tracks the current work focus, recent changes, and next steps. It 
 
 ## Current Focus
 
-- **Initial Project Analysis and Documentation**: The primary focus is on understanding the existing codebase and populating the memory bank with accurate and comprehensive documentation.
+- **Chrome Extension Development**: The current focus is on building a Chrome extension to display session costs.
 
 ## Recent Changes
 
+- **Created Chrome Extension**: A new Chrome extension has been created in the `extension` directory. The extension fetches and displays cost data from the `/cost` API endpoint. The extension is loaded using the `--load-extension` flag, and the server configuration is passed to it via the Chrome DevTools Protocol's `Extensions.setStorageItems` method. The extension has been updated to correctly parse the cost data and display it in a user-friendly format.
 - **Populated Memory Bank**: All memory bank files (`projectbrief.md`, `productContext.md`, `systemPatterns.md`, `techContext.md`, `activeContext.md`, and `progress.md`) have been updated with information gathered from the source code and project files.
 
 ## Next Steps

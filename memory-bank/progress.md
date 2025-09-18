@@ -10,6 +10,7 @@ This document tracks what works, what's left to build, the current status, known
 - The server can communicate with the Google Gemini API to generate HTML and images.
 - The generated content is successfully rendered in the browser.
 - The application is configurable via command-line arguments.
+- A Chrome extension is available to track session costs.
 
 ## What's Left to Build
 
