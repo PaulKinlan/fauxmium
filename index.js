@@ -5,6 +5,7 @@ import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import { startServer } from "./server/index.js";
 import { startBrowser } from "./browser.js";
+import { loadCosts } from "./lib/costCalculator.js";
 
 const argv = yargs(hideBin(process.argv))
   .option("port", {
@@ -57,5 +58,11 @@ console.log(`Starting server on http://${hostname}:${port}`);
 console.log(`Using text generation model: ${textGenerationModel}`);
 console.log(`Using image generation model: ${imageGenerationModel}`);
 
-startServer(hostname, port, API_KEY, textGenerationModel, imageGenerationModel);
+await startServer(
+  hostname,
+  port,
+  API_KEY,
+  textGenerationModel,
+  imageGenerationModel
+);
 startBrowser(hostname, port, enableDevTools);

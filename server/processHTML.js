@@ -1,7 +1,7 @@
-import { costCalculator } from "../lib/costCalculator";
-import { generatePrompt } from "../lib/prompts";
-import { streamCodeBlocks } from "../lib/streamCodeBlocks";
-import { processChunks } from ".";
+import { costCalculator } from "../lib/costCalculator.js";
+import { generatePrompt } from "../lib/prompts.js";
+import { streamCodeBlocks } from "../lib/streamCodeBlocks.js";
+import { processChunks } from "../lib/processChunks.js";
 
 export async function processHTML(res, url, ai, textGenerationModel) {
   let contentType = "text/html";
@@ -23,7 +23,7 @@ export async function processHTML(res, url, ai, textGenerationModel) {
       contents: prompt,
     });
 
-    const calc = costCalculator();
+    const calc = costCalculator(textGenerationModel, requestUrl);
 
     const outputStream = processChunks(
       [

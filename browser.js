@@ -53,6 +53,11 @@ function startBrowser(hostname, port, devtools) {
       // Waiting on https://chromium-review.googlesource.com/c/chromium/src/+/6945075 - Thank you Andrey
       const newHeaders = { ...headers, Referer: "" };
 
+      if (url.startsWith(`http://${hostname}:${port}/`)) {
+        await request.continue();
+        return;
+      }
+
       if (method !== "GET") {
         await request.respond("");
         return;

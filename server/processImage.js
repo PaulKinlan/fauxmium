@@ -1,4 +1,5 @@
-import { generatePrompt } from "../lib/prompts";
+import { generatePrompt } from "../lib/prompts.js";
+import { costCalculator } from "../lib/costCalculator.js";
 
 export async function processImage(res, url, ai, imageGenerationModel) {
   const requestUrl = url.searchParams.get("url");
