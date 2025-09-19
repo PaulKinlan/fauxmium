@@ -10,8 +10,8 @@ This document outlines the core requirements and goals of the Fauxmium project. 
 
 ## Core Requirements
 
-- The application must use Puppeteer to control a headless Chrome browser.
+- The application must use Puppeteer to control a Chrome browser (headful) to support runtime extension installation and DevTools.
 - All navigation and image requests from the browser must be intercepted.
-- A local proxy server must handle the intercepted requests and generate content using the Google Gemini AI models.
+- A local proxy server must handle the intercepted requests and generate content using configurable AI providers (text via Google/OpenAI/Anthropic/Groq; images via Google/Gemini).
 - The application must be configurable via command-line arguments (e.g., port, hostname, AI models).
 - The system must be able to generate both HTML pages and images.

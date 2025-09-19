@@ -1,62 +1,175 @@
-## The Infinite Generated Web
+# Fauxmium — The Infinite Generated Web
 
-**Everything that you see inside the browser when you use this demo is generated on the fly. It is not real!**
+Everything you see inside the Fauxmium browser is generated on the fly. It is not real.
 
-**This demo is not affiliated with my employer or any of its products.**
+This project is a proof‑of‑concept showing how generative AI can create an effectively infinite “web” as you browse. Fauxmium launches Chrome, intercepts navigations and image requests, and routes them to a local proxy that asks AI models to generate HTML and images for the requested URL.
 
-This demo is a proof of concept that shows how you can use generative AI to create an infinite number of websites as you browse. It uses Chrome for Testers and [Puppeteer](https://pptr.dev/) to intercept every single request that is made from the page and route it to Gemini, and the response is used to generate the content on the page.
+Not affiliated with any employer or product.
 
-## How to run
+## Quick Start
 
-`npx fauxmium`
-
-### Setup
-
-This project requires a Google Gemini API Key.
-
-1.  Create a `.env` file in the root of the project.
-2.  Add your API key to the `.env` file:
-
-    ```
-    API_KEY=your_api_key_here
-    ```
-
-### Command-line options
-
-- `--port` or `-p`: The port to run the server on. Defaults to `3001`.
-- `--hostname` or `-H`: The hostname to run the server on. Defaults to `127.0.0.1`.
-- `--text-generation-model` or `-t`: The model to use for text generation. Defaults to `gemini-2.5-flash-lite`.
-- `--image-generation-model` or `-i`: The model to use for image generation. Defaults to `gemini-2.5-flash-image-preview`.
-
-### Examples
-
-Run on a different port with a specific model:
+Run with default settings (Google/Gemini for text and images):
 
 ```bash
-npx fauxmium --port 8080 --text-generation-model gemini-pro
+npx fauxmium
 ```
 
-## Architecture
+Recommended: open DevTools
 
-This project works by intercepting browser requests and generating content using a generative AI model. Here's a breakdown of the process:
+```bash
+npx fauxmium --devtools
+```
 
-1.  **Browser Initialization**: The application starts by launching a Chrome instance using Puppeteer (`index.js`).
-2.  **Request Interception**: Puppeteer is configured to intercept all navigation and image requests made by the browser.
-3.  **Proxy Server**: Instead of fulfilling the requests from the web, the browser is redirected to a local proxy server (`server.js`).
-4.  **AI Content Generation**: The proxy server receives the request and uses the `@google/genai` library to communicate with the Gemini AI model.
-    - For page navigations, it generates a prompt based on the URL and streams the resulting HTML back to the browser.
-    - For image requests, it generates a prompt and returns an AI-generated image.
-5.  **Simulated Browsing**: The browser renders the AI-generated content, creating a simulated experience of browsing a fictitious web.
+## Requirements
 
-## Limitations
+- Node.js
+- API keys for the providers you intend to use (see Environment Variables below)
 
-- **No CSS or JavaScript**: The current version only generates HTML and images. It does not support generating external CSS or JavaScript files for example.
-- **Stateless**: Each page is generated independently. There is no memory or state between navigations, this also includes image generation which currently has not context of where it is placed on the page.
+## Environment Variables
 
-## Contributing
+Place in a `.env` file at project root or export via your shell:
 
-Contributions are welcome! If you have ideas for new features, improvements, or bug fixes, please open an issue or submit a pull request.
+- GEMINI_API_KEY or GOOGLE_API_KEY — for Google text and images
+- OPENAI_API_KEY — for OpenAI text
+- ANTHROPIC_API_KEY — for Anthropic text
+- GROQ_API_KEY — for Groq text
+
+The CLI automatically resolves keys from the environment. You can override with flags (`--api-key`, `--image-api-key`).
+
+Example `.env`:
+
+```
+GEMINI_API_KEY=your_gemini_key
+OPENAI_API_KEY=your_openai_key
+ANTHROPIC_API_KEY=your_anthropic_key
+GROQ_API_KEY=your_groq_key
+```
+
+## CLI Usage
+
+Default command (no subcommand) uses Google/Gemini text and Google/Gemini images.
+
+```
+npx fauxmium [options]
+```
+
+Provider commands for text:
+
+```
+npx fauxmium gemini   [options]
+npx fauxmium google   [options]   # alias of gemini
+npx fauxmium openai   [options]
+npx fauxmium anthropic [options]
+npx fauxmium groq     [options]
+```
+
+Common options:
+
+- --hostname, -H Default: 127.0.0.1
+- --port, -p Default: 3001
+- --devtools Open DevTools on launch (default: false)
+- --model, -m Text model (provider-specific defaults/choices)
+- --api-key Explicit API key for text provider (overrides env)
+- --image-provider Image provider (currently gemini/google only)
+- --image-model, -i Image model (e.g., gemini-2.5-flash-image-preview)
+- --image-api-key Explicit API key for image provider (overrides env)
+
+Image configuration:
+
+- Images are currently supported only via Google/Gemini.
+- You can configure image settings via:
+  - the same provider command’s nested `images` subcommand, or
+  - the options on the main command.
+
+Examples:
+
+```bash
+# Default: Gemini text + images
+npx fauxmium
+
+# OpenAI for text, Gemini for images
+npx fauxmium openai --api-key $OPENAI_API_KEY --image-api-key $GEMINI_API_KEY
+
+# Change port/host and open DevTools
+npx fauxmium -p 8080 -H 127.0.0.1 --devtools
+
+# Choose text and image models explicitly (Gemini)
+npx fauxmium gemini -m gemini-2.5-flash-lite --image-model gemini-2.5-flash-image-preview
+```
+
+For full help and the list of default models per provider:
+
+```bash
+npx fauxmium --help
+```
+
+## How It Works
+
+High-level flow:
+
+1. Fauxmium launches headful Chrome via Puppeteer.
+2. It installs a bundled MV3 extension at runtime and configures it with the proxy host/port.
+3. All page navigations and image requests are intercepted.
+4. Intercepted requests are redirected to a local proxy server that asks AI models to generate HTML or images based on the requested URL.
+5. The browser renders the returned content.
+
+Components:
+
+- Browser Controller (`browser.js`)
+  - Headful Chrome launch, runtime extension install, configuration via CDP Extensions.setStorageItems.
+  - Intercepts requests per page.
+  - Shows a warning page on startup.
+- Proxy Server (`server/index.js`)
+  - Endpoints:
+    - GET /html — Streams AI‑generated HTML (extracted from ```html fences).
+    - GET /image — Returns AI‑generated image bytes (PNG/JPEG/etc.) or a 1×1 transparent PNG on error.
+    - GET /cost — In‑memory session usage/cost summary (used by the extension).
+  - Loads model pricing from Helicone for cost tracking (`loadCosts`).
+- Text/Image Generation (`/lib`)
+  - `lib/aiAdapter.js` — Text streaming via Vercel AI SDK across providers (Google/OpenAI/Anthropic/Groq). Images via `@google/genai` (Google only).
+  - `lib/costCalculator.js` — Tracks token usage and cost per request/session.
+  - `lib/processChunks.js` — Applies processors and manages stream flush with an END sentinel.
+  - `lib/streamCodeBlocks.js` — Extracts ```html fenced content from the text stream.
+  - `lib/prompts.js` — Loads and interpolates `prompts/html.txt` and `prompts/image.txt`.
+- Chrome Extension (`extension/`)
+  - Popup fetches `/cost` and displays total and per‑request costs.
+
+Prompts:
+
+- `prompts/html.txt`
+- `prompts/image.txt`
+
+These are read from disk on each request, so you can tweak prompts without restarting.
+
+## Constraints and Behavior
+
+- Subresources:
+  - Only navigation (page) and image requests are forwarded to the proxy.
+  - Other subresources (e.g., external CSS/JS) are blocked.
+  - Generate inline CSS and JS within the HTML.
+- State:
+  - Navigations are stateless; there is no cross‑page memory at present.
+- Images:
+  - Only Google/Gemini image generation is supported at this time.
+- Costs and usage:
+  - Pricing is fetched from Helicone per model; unknown models default to 0.
+  - Some providers may not report usage; such requests are counted as 0 cost.
+  - Image generation costs are not currently tracked.
+- Headers:
+  - Referer is stripped (set to empty) for proxy‑bound requests as a temporary workaround.
+
+## Roadmap (abridged)
+
+- Improve image prompts with width/height/description parsed from image URLs.
+- Optional session memory to carry context across navigations.
+- Add additional image providers behind a common interface.
+- Add `/reset-costs` endpoint and refresh/reset in the extension popup.
+- Better error handling, timeouts, structured logs, and tests.
 
 ## License
 
-This project is licensed under the Apache-2.0 License. See the `LICENCE` file for details.
+Apache‑2.0 — see `LICENCE`.
+
+## Contributing
+
+Issues and PRs are welcome. Please describe changes clearly and include repro steps where relevant.
