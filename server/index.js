@@ -4,8 +4,22 @@ import { processImage } from "../server/processImage.js";
 import { sessionCosts, loadCosts } from "../lib/costCalculator.js";
 
 export async function startServer(hostname, port, textConfig, imageConfig) {
-  await loadCosts(textConfig.model);
-  //await loadCosts(imageConfig.model);
+  try {
+    if (textConfig?.model) {
+      await loadCosts(textConfig.model);
+    } else {
+      console.warn(
+        "[costs] No text model configured; costs will be treated as 0."
+      );
+    }
+    // If tracking image costs later, guard similarly:
+    // if (imageConfig?.model) await loadCosts(imageConfig.model);
+  } catch (e) {
+    console.warn(
+      `[costs] Failed to initialize costs for model '${textConfig?.model}':`,
+      e
+    );
+  }
 
   const server = http.createServer(async (req, res) => {
     res.statusCode = 200;

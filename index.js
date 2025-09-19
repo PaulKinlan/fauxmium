@@ -285,8 +285,15 @@ yargs(hideBin(process.argv))
   // Groq
   .command(
     buildCommand("groq", "Use the Groq provider", {
-      defaultTextModel: "llama-3.1-70b-versatile",
-      textChoices: ["llama-3.1-70b-versatile", "llama-3.1-8b-instant"],
+      defaultTextModel: "moonshotai/kimi-k2-instruct-0905",
+      textChoices: [
+        "llama-3.3-70b-versatile",
+        "llama-3.1-8b-instant",
+        "openai/gpt-oss-120b",
+        "moonshotai/kimi-k2-instruct-0905",
+        "qwen/qwen3-32b",
+        "groq/compound",
+      ],
 
       defaultImageProvider: "gemini",
       defaultImageModel: "gemini-2.5-flash-image-preview",
