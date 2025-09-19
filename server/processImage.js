@@ -1,7 +1,7 @@
 import { generatePrompt } from "../lib/prompts.js";
-import { costCalculator } from "../lib/costCalculator.js";
+import { generateImage } from "../lib/aiAdapter.js";
 
-export async function processImage(res, url, ai, imageGenerationModel) {
+export async function processImage(res, url, imageConfig) {
   const requestUrl = url.searchParams.get("url");
   const newUrl = new URL(requestUrl);
   const description = newUrl.searchParams.get("description");
@@ -18,39 +18,10 @@ export async function processImage(res, url, ai, imageGenerationModel) {
       description: description || requestUrl,
     });
 
-    const response = await ai.models.generateContent({
-      model: imageGenerationModel,
-      contents: prompt,
-      config: {
-        personGeneration: "allow_adult",
-        responseModalities: ["IMAGE"],
-      },
-    });
+    const { mimeType, base64Data } = await generateImage(imageConfig, prompt);
 
-    if (response.candidates.length === 0 || !response.candidates[0].content) {
-      console.log("Prompt feedback:", response);
-
-      throw new Error("No candidates in AI response");
-    }
-
-    const aiImageResponse = response.candidates[0].content.parts.find(
-      (part) => "inlineData" in part
-    );
-
-    // Check if we have inline data (base64 image)
-    if (!aiImageResponse.inlineData || !aiImageResponse.inlineData.data) {
-      console.log(response.candidates[0].content);
-      throw new Error("No image data in AI response");
-    }
-
-    // Convert base64 to binary data
-    const base64Data = aiImageResponse.inlineData.data;
-    const mimeType = aiImageResponse.inlineData.mimeType || "image/png";
-
-    // Decode base64 to binary
-    const binaryData = Uint8Array.from(atob(base64Data), (c) =>
-      c.charCodeAt(0)
-    );
+    // Decode base64 to binary using Buffer
+    const binaryData = Buffer.from(base64Data, "base64");
 
     // Return binary data with proper content type
     res.setHeader("Content-Type", mimeType);
@@ -61,9 +32,16 @@ export async function processImage(res, url, ai, imageGenerationModel) {
     console.error("error name: ", e.name);
     console.error("error message: ", e.message);
     console.error("error status: ", e.status);
-    // Return a placeholder image or error message
-    res.statusCode = 500;
-    res.setHeader("Content-Type", "text/plain");
-    res.end(`Error generating image: ${e.message}`);
+
+    // Fallback: transparent 1x1 PNG so the page still renders an image
+    // Base64 of a 1x1 transparent PNG
+    const placeholderBase64 =
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=";
+    const binaryData = Buffer.from(placeholderBase64, "base64");
+
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "image/png");
+    res.setHeader("Content-Length", binaryData.length.toString());
+    res.end(binaryData);
   }
 }

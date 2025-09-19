@@ -2,8 +2,9 @@ import { costCalculator } from "../lib/costCalculator.js";
 import { generatePrompt } from "../lib/prompts.js";
 import { streamCodeBlocks } from "../lib/streamCodeBlocks.js";
 import { processChunks } from "../lib/processChunks.js";
+import { streamText } from "../lib/aiAdapter.js";
 
-export async function processHTML(res, url, ai, textGenerationModel) {
+export async function processHTML(res, url, textConfig) {
   let contentType = "text/html";
   res.setHeader("Content-Type", contentType);
   const requestUrl = url.searchParams.get("url");
@@ -18,18 +19,15 @@ export async function processHTML(res, url, ai, textGenerationModel) {
       requestHeaders,
     });
 
-    const response = await ai.models.generateContentStream({
-      model: textGenerationModel,
-      contents: prompt,
-    });
+    const response = streamText(textConfig, prompt);
 
-    const calc = costCalculator(textGenerationModel, requestUrl);
+    const calc = costCalculator(textConfig.model, requestUrl);
 
     const outputStream = processChunks(
       [
-        (chunk) => {
-          console.log("Processing chunk:", JSON.stringify(chunk));
-        },
+        // (chunk) => {
+        //   console.log("Processing chunk:", JSON.stringify(chunk));
+        // },
         calc,
       ],
       streamCodeBlocks("html"),

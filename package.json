@@ -22,7 +22,12 @@
     "url": "git@github.com:PaulKinlan/fauxmium.git"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^2.0.17",
+    "@ai-sdk/google": "^2.0.14",
+    "@ai-sdk/groq": "^2.0.20",
+    "@ai-sdk/openai": "^2.0.32",
     "@google/genai": "^1.17.0",
+    "ai": "^5.0.47",
     "dotenv": "^17.2.2",
     "puppeteer": "*",
     "yargs": "^18.0.0"
