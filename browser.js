@@ -18,6 +18,11 @@ function startBrowser(hostname, port, devtools) {
       enableExtensions: true,
     });
 
+    browser.on("disconnected", () => {
+      console.log("Browser disconnected. Exiting...");
+      process.exit(0);
+    });
+
     browser.on("targetcreated", async (target) => {
       if (target.type() === "page") {
         const newPage = await target.page();
