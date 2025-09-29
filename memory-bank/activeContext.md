@@ -45,6 +45,7 @@ This document tracks the current work focus, recent changes, next steps, active 
 - Provider parity for images:
   - Add support for additional image providers or abstract image generation behind a common interface.
 - Cost and UX improvements:
+  - The popup is now responsive and handles long URLs.
   - Add a `/reset-costs` endpoint and a refresh/reset control in the extension popup.
   - Handle providers that do not return usage by estimating tokens (or clearly labeling as “unknown/0”).
 - Hardening and DX:

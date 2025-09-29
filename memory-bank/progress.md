@@ -50,6 +50,7 @@ This document tracks what works, what's left to build, the current status, known
 
 ## Known Issues
 
+- The extension popup is now responsive and handles long URLs correctly.
 - Stateless navigations:
   - No persistent state between requests; content coherence across pages is limited.
 - Subresource blocking:
