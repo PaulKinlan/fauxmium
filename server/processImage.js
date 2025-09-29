@@ -1,5 +1,6 @@
 import { generatePrompt } from "../lib/prompts.js";
 import { generateImage } from "../lib/aiAdapter.js";
+import { costCalculator } from "../lib/costCalculator.js";
 
 export async function processImage(res, url, imageConfig) {
   const requestUrl = url.searchParams.get("url");
@@ -18,10 +19,23 @@ export async function processImage(res, url, imageConfig) {
       description: description || requestUrl,
     });
 
-    const { mimeType, base64Data } = await generateImage(imageConfig, prompt);
+    const { mimeType, base64Data, usage } = await generateImage(
+      imageConfig,
+      prompt
+    );
 
     // Decode base64 to binary using Buffer
     const binaryData = Buffer.from(base64Data, "base64");
+
+    const cost = costCalculator(imageConfig.model, requestUrl);
+    // https://ai.google.dev/gemini-api/docs/pricing#gemini-2.5-flash-image-preview 1290 tokens = $0.000387
+    const costResult = cost({ usage, END: true });
+
+    console.log(
+      `Image generated for ${requestUrl} with cost: $${costResult.cost.toFixed(
+        6
+      )}`
+    );
 
     // Return binary data with proper content type
     res.setHeader("Content-Type", mimeType);

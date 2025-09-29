@@ -6,7 +6,19 @@ import { sessionCosts, loadCosts } from "../lib/costCalculator.js";
 export async function startServer(hostname, port, textConfig, imageConfig) {
   try {
     if (textConfig?.model) {
-      await loadCosts(textConfig.model);
+      let { model } = textConfig;
+      if (
+        model == "gemini-flash-lite-latest" ||
+        model == "gemini-flash-latest"
+      ) {
+        model = model.replace("gemini-flash", "gemini-2.5-flash");
+        model = model.replace("-latest", "");
+        console.log(
+          `[costs] Mapping latest model name to stable: ${textConfig.model} -> ${model}`
+        );
+      }
+
+      await loadCosts(model);
     } else {
       console.warn(
         "[costs] No text model configured; costs will be treated as 0."
@@ -17,6 +29,23 @@ export async function startServer(hostname, port, textConfig, imageConfig) {
   } catch (e) {
     console.warn(
       `[costs] Failed to initialize costs for model '${textConfig?.model}':`,
+      e
+    );
+  }
+
+  try {
+    if (imageConfig?.model) {
+      let { model } = imageConfig;
+
+      await loadCosts(model);
+    } else {
+      console.warn(
+        "[costs] No image model configured; costs will be treated as 0."
+      );
+    }
+  } catch (e) {
+    console.warn(
+      `[costs] Failed to initialize costs for model '${imageConfig?.model}':`,
       e
     );
   }

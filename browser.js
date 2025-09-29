@@ -108,14 +108,10 @@ function startBrowser(hostname, port, devtools) {
         `Redirecting ${resourceType} request from ${url} to ${proxyUrl}`
       );
 
-      console.log("BEFORE", request.interceptResolutionState());
-
       await request.continue({
         url: proxyUrl,
         headers: newHeaders,
       });
-
-      console.log("AFTER", request.interceptResolutionState());
     });
   }
 }

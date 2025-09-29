@@ -235,10 +235,10 @@ function buildImagesProviderCommand(cmdName, describe, defaults) {
 }
 
 const defaultTextProvider = "gemini";
-const defaultTextModel = "gemini-2.5-flash-lite-latest";
+const defaultTextModel = "gemini-flash-lite-latest";
 const defaultTextModels = [
-  "gemini-2.5-flash-lite-latest",
-  "gemini-2.5-flash-latest",
+  "gemini-flash-lite-latest",
+  "gemini-flash-latest",
   "gemini-1.5-pro",
   "gemini-1.5-flash",
 ];
