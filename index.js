@@ -239,8 +239,8 @@ const defaultTextModel = "gemini-flash-lite-latest";
 const defaultTextModels = [
   "gemini-flash-lite-latest",
   "gemini-flash-latest",
-  "gemini-1.5-pro",
-  "gemini-1.5-flash",
+  "gemini-2.5-pro",
+  "gemini-2.5-flash",
 ];
 const defaultImageProvider = "gemini";
 const defaultImageModel = "gemini-2.5-flash-image-preview";
