@@ -1,9 +1,16 @@
 import http from "http";
 import { processHTML } from "../server/processHTML.js";
 import { processImage } from "../server/processImage.js";
+import { processVideo } from "../server/processVideo.js";
 import { sessionCosts, loadCosts } from "../lib/costCalculator.js";
 
-export async function startServer(hostname, port, textConfig, imageConfig) {
+export async function startServer(
+  hostname,
+  port,
+  textConfig,
+  imageConfig,
+  videoConfig
+) {
   try {
     if (textConfig?.model) {
       let { model } = textConfig;
@@ -50,6 +57,23 @@ export async function startServer(hostname, port, textConfig, imageConfig) {
     );
   }
 
+  try {
+    if (videoConfig?.model) {
+      let { model } = videoConfig;
+
+      await loadCosts(model);
+    } else {
+      console.warn(
+        "[costs] No video model configured; costs will be treated as 0."
+      );
+    }
+  } catch (e) {
+    console.warn(
+      `[costs] Failed to initialize costs for model '${videoConfig?.model}':`,
+      e
+    );
+  }
+
   const server = http.createServer(async (req, res) => {
     res.statusCode = 200;
     res.setHeader("Access-Control-Allow-Origin", "*");
@@ -60,6 +84,8 @@ export async function startServer(hostname, port, textConfig, imageConfig) {
       await processHTML(res, url, textConfig);
     } else if (url.pathname === "/image") {
       await processImage(res, url, imageConfig);
+    } else if (url.pathname === "/video") {
+      await processVideo(res, url, videoConfig);
     } else if (url.pathname === "/cost") {
       res.statusCode = 200;
       res.setHeader("Content-Type", "application/json");

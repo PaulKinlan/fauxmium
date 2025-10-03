@@ -41,6 +41,9 @@ async function run(providerFromCmd, argv) {
   const imageProvider = normalizeProvider(
     argv["image-provider"] || providerFromCmd
   );
+  const videoProvider = normalizeProvider(
+    argv["video-provider"] || providerFromCmd
+  );
 
   const hostname = argv.hostname;
   const port = argv.port;
@@ -51,6 +54,8 @@ async function run(providerFromCmd, argv) {
 
   const textApiKey = argv["api-key"] || resolveApiKey(textProvider);
   const imageApiKey = argv["image-api-key"] || resolveApiKey(imageProvider);
+  const videoApiKey = argv["video-api-key"] || resolveApiKey(videoProvider);
+  const videoGenerationModel = argv["video-model"];
 
   if (!textApiKey) {
     console.warn(
@@ -67,12 +72,25 @@ async function run(providerFromCmd, argv) {
     process.exit(1);
   }
 
+  if (!videoApiKey) {
+    console.warn(
+      `No API key found for video provider '${
+        argv["video-provider"] || providerFromCmd
+      }'. Set via --video-api-key or environment variable.`
+    );
+    process.exit(1);
+  }
+
   console.log(`Starting server on http://${hostname}:${port}`);
   console.log(
     `Using text provider: ${textProvider}, model: ${textGenerationModel}`
   );
   console.log(
     `Using image provider: ${imageProvider}, model: ${imageGenerationModel}`
+  );
+
+  console.log(
+    `Using video provider: ${videoProvider}, model: ${videoGenerationModel}`
   );
 
   await startServer(
@@ -83,6 +101,11 @@ async function run(providerFromCmd, argv) {
       provider: imageProvider,
       apiKey: imageApiKey,
       model: imageGenerationModel,
+    },
+    {
+      provider: videoProvider,
+      apiKey: videoApiKey,
+      model: videoGenerationModel,
     }
   );
   startBrowser(hostname, port, enableDevTools);
@@ -121,6 +144,10 @@ function keyOptions(y) {
     .option("image-api-key", {
       type: "string",
       describe: "Explicit API key for image provider (overrides env)",
+    })
+    .option("video-api-key", {
+      type: "string",
+      describe: "Explicit API key for video provider (overrides env)",
     });
 }
 
@@ -142,6 +169,24 @@ function imageOptions(y, { defaultProvider, defaultImageModel, imageChoices }) {
     });
 }
 
+function videoOptions(y, { defaultProvider, defaultVideoModel, videoChoices }) {
+  return y
+    .option("video-provider", {
+      type: "string",
+      default: defaultProvider,
+      describe:
+        "AI provider for video generation (default matches the chosen command provider). Non-Google video providers currently return a placeholder MP4.",
+      choices: ["gemini", "google"],
+    })
+    .option("video-model", {
+      alias: "v",
+      type: "string",
+      default: defaultVideoModel,
+      describe: "The model to use for video generation",
+      choices: videoChoices?.length ? videoChoices : undefined,
+    });
+}
+
 function buildCommand(cmdNames, describe, defaults) {
   const {
     defaultTextModel,
@@ -149,6 +194,9 @@ function buildCommand(cmdNames, describe, defaults) {
     defaultImageProvider,
     defaultImageModel,
     imageChoices,
+    defaultVideoProvider,
+    defaultVideoModel,
+    videoChoices,
   } = defaults;
 
   return {
@@ -171,6 +219,14 @@ function buildCommand(cmdNames, describe, defaults) {
         imageChoices,
       });
 
+      yy = videoOptions(yy, {
+        defaultProvider: Array.isArray(defaultVideoProvider)
+          ? defaultVideoProvider[0]
+          : defaultVideoProvider,
+        defaultVideoModel,
+        videoChoices,
+      });
+
       yy = keyOptions(yy);
       yy = commonNetOptions(yy);
 
@@ -186,6 +242,23 @@ function buildCommand(cmdNames, describe, defaults) {
               : defaultImageProvider,
             defaultImageModel,
             imageChoices,
+          }),
+        handler: (argv) =>
+          run(Array.isArray(cmdNames) ? cmdNames[0] : cmdNames, argv),
+      });
+
+      // Nested 'videos' subcommand to configure video provider/model with contextual help
+      yy = yy.command({
+        command: "videos [provider]",
+        describe:
+          "Configure video generation provider and model (defaults to this command's provider)",
+        builder: (z) =>
+          videoOptions(z, {
+            defaultProvider: Array.isArray(defaultVideoProvider)
+              ? defaultVideoProvider[0]
+              : defaultVideoProvider,
+            defaultVideoModel,
+            videoChoices,
           }),
         handler: (argv) =>
           run(Array.isArray(cmdNames) ? cmdNames[0] : cmdNames, argv),
@@ -234,6 +307,42 @@ function buildImagesProviderCommand(cmdName, describe, defaults) {
   };
 }
 
+/**
+ * Build an video-only provider command. This lets users run:
+ *   my-cli videos gemini
+ * and see video-specific help/options per provider.
+ *
+ * By default, text provider remains Gemini to preserve current behavior.
+ * Users can still override text settings with flags if desired.
+ */
+function buildVideoProviderCommand(cmdName, describe, defaults) {
+  const { defaultVideoModel, videoChoices, defaultVideoProvider } = defaults;
+
+  return {
+    command: defaultVideoProvider,
+    describe,
+    builder: (y) => {
+      let yy = videoOptions(y, {
+        defaultProvider: cmdName,
+        defaultVideoModel,
+        videoChoices,
+      });
+
+      yy = keyOptions(yy);
+      yy = commonNetOptions(yy);
+
+      return yy;
+    },
+    handler: (argv) => {
+      // Force the video provider to this command's provider
+      argv["video-provider"] = cmdName;
+
+      // Keep text provider defaulting to Gemini for now
+      return run("gemini", argv);
+    },
+  };
+}
+
 const defaultTextProvider = "gemini";
 const defaultTextModel = "gemini-flash-lite-latest";
 const defaultTextModels = [
@@ -245,6 +354,14 @@ const defaultTextModels = [
 const defaultImageProvider = "gemini";
 const defaultImageModel = "gemini-2.5-flash-image-preview";
 const imageChoices = ["gemini-2.5-flash-image-preview"];
+const defaultVideoProvider = "gemini";
+const defaultVideoModel = "veo-3.0-fast-generate-preview";
+const videoChoices = [
+  "veo-3.0-generate-001",
+  "veo-3.0-generate-preview",
+  "veo-3.0-fast-generate-001",
+  "veo-3.0-fast-generate-preview",
+];
 
 yargs(hideBin(process.argv))
   // Gemini / Google
@@ -255,6 +372,9 @@ yargs(hideBin(process.argv))
       defaultImageProvider,
       defaultImageModel,
       imageChoices,
+      defaultVideoProvider,
+      defaultVideoModel,
+      videoChoices,
     })
   )
   // OpenAI
@@ -262,9 +382,12 @@ yargs(hideBin(process.argv))
     buildCommand("openai", "Use the OpenAI provider", {
       defaultTextModel: "gpt-5-nano",
       textChoices: ["gpt-5-nano", "gpt-4-mini", "gpt-5-pro"],
-      defaultImageProvider: "gemini",
-      defaultImageModel: "gemini-2.5-flash-image-preview",
-      imageChoices: ["gemini-2.5-flash-image-preview"],
+      defaultImageProvider,
+      defaultImageModel,
+      imageChoices,
+      defaultVideoProvider,
+      defaultVideoModel,
+      videoChoices,
     })
   )
   // Anthropic
@@ -276,10 +399,12 @@ yargs(hideBin(process.argv))
         "claude-3-7-sonnet-latest",
         "claude-3-opus-latest",
       ],
-
-      defaultImageProvider: "gemini",
-      defaultImageModel: "gemini-2.5-flash-image-preview",
-      imageChoices: ["gemini-2.5-flash-image-preview"],
+      defaultImageProvider,
+      defaultImageModel,
+      imageChoices,
+      defaultVideoProvider,
+      defaultVideoModel,
+      videoChoices,
     })
   )
   // Groq
@@ -294,10 +419,12 @@ yargs(hideBin(process.argv))
         "qwen/qwen3-32b",
         "groq/compound",
       ],
-
-      defaultImageProvider: "gemini",
-      defaultImageModel: "gemini-2.5-flash-image-preview",
-      imageChoices: ["gemini-2.5-flash-image-preview"],
+      defaultImageProvider,
+      defaultImageModel,
+      imageChoices,
+      defaultVideoProvider,
+      defaultVideoModel,
+      videoChoices,
     })
   )
   // Top-level 'images' command with provider-specific subcommands and contextual help
@@ -320,6 +447,31 @@ yargs(hideBin(process.argv))
     },
     handler: () => {},
   })
+  // Top-level 'video' command with provider-specific subcommands and contextual help
+  .command({
+    command: "video",
+    describe: "Video generation commands",
+    builder: (y) => {
+      // we can only use gemini/google for videos right now
+      y.command(
+        buildVideoProviderCommand("gemini", "Use Gemini for videos", {
+          defaultVideoModel: "veo-3.0-fast-generate-preview",
+          videoChoices: [
+            "veo-3.0-generate-001",
+            "veo-3.0-generate-preview",
+            "veo-3.0-fast-generate-001",
+            "veo-3.0-fast-generate-preview",
+          ],
+        })
+      );
+
+      return y.demandCommand(
+        1,
+        "You need to specify a video provider command (gemini)."
+      );
+    },
+    handler: () => {},
+  })
   .command(
     "$0",
     "the default command",
@@ -337,6 +489,12 @@ yargs(hideBin(process.argv))
         defaultProvider: defaultImageProvider,
         defaultImageModel: defaultImageModel,
         imageChoices: imageChoices,
+      });
+
+      yy = videoOptions(yy, {
+        defaultProvider: defaultVideoProvider,
+        defaultVideoModel: defaultVideoModel,
+        videoChoices: videoChoices,
       });
 
       return yy;

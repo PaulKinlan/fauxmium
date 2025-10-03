@@ -85,7 +85,11 @@ function startBrowser(hostname, port, devtools) {
         return;
       }
 
-      if (!request.isNavigationRequest() && resourceType !== "image") {
+      if (
+        !request.isNavigationRequest() &&
+        resourceType !== "image" &&
+        resourceType !== "media"
+      ) {
         await request.respond("");
         return;
       }
@@ -100,6 +104,10 @@ function startBrowser(hostname, port, devtools) {
         )}`;
       } else if (resourceType === "image") {
         proxyUrl = `http://${hostname}:${port}/image?url=${encodeURIComponent(
+          url
+        )}&headers=${encodeURIComponent(JSON.stringify(headers))}`;
+      } else if (resourceType === "media") {
+        proxyUrl = `http://${hostname}:${port}/video?url=${encodeURIComponent(
           url
         )}&headers=${encodeURIComponent(JSON.stringify(headers))}`;
       }
