@@ -85,15 +85,19 @@ export async function processVideo(res, url, VideoConfig) {
       },
     });
 
-    // const cost = costCalculator(VideoConfig.model, requestUrl);
+    const cost = costCalculator(VideoConfig.model, requestUrl);
     // // https://ai.google.dev/gemini-api/docs/pricing#gemini-2.5-flash-Video-preview 1290 tokens = $0.000387
-    // const costResult = cost({ usage, END: true });
+    const usage = {
+      inputTokens: 0,
+      outputTokens: 8,
+    };
+    const costResult = cost({ usage, END: true });
 
-    // console.log(
-    //   `Video generated for ${requestUrl} with cost: $${costResult.cost.toFixed(
-    //     6
-    //   )}`
-    // );
+    console.log(
+      `Video generated for ${requestUrl} with cost: $${costResult.cost.toFixed(
+        6
+      )}`
+    );
     const mimeType = videoResponse.headers.get("Content-Type") || "video/mp4";
     // Return binary data with proper content type
     res.setHeader("Content-Type", mimeType);
