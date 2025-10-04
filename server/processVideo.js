@@ -1,5 +1,6 @@
 import { generatePrompt } from "../lib/prompts.js";
 import { costCalculator } from "../lib/costCalculator.js";
+import { waitForCachedImage } from "../lib/imageCache.js";
 
 import { GoogleGenAI } from "@google/genai";
 
@@ -7,14 +8,17 @@ export async function processVideo(res, url, VideoConfig) {
   const requestUrl = url.searchParams.get("url");
   const newUrl = new URL(requestUrl);
   const description = newUrl.searchParams.get("description");
+  const posterUrl = new URL(encodeURI(newUrl.searchParams.get("poster")));
 
   const ai = new GoogleGenAI({ apiKey: VideoConfig.apiKey });
 
-  let contentType = "video/mp4";
+  const contentType = "video/mp4";
   res.setHeader("Content-Type", contentType);
 
   console.log(
-    `Video request for URL: ${requestUrl} with description: ${description}`
+    `Video request for URL: ${requestUrl}
+  with description: ${description}
+  poster: ${posterUrl}`
   );
   console.log(`Server generating Video for: ${requestUrl}`);
   try {
@@ -22,15 +26,46 @@ export async function processVideo(res, url, VideoConfig) {
       description: description || requestUrl,
     });
 
-    // const { mimeType, base64Data, usage } = await generateVideo(
-    //   VideoConfig,
-    //   prompt
-    // );
+    // Wait for cached poster image if provided
+    let posterImageData = null;
+    if (posterUrl) {
+      posterUrl.search = ""; // strip any params
+      posterUrl.hash = ""; // strip any hash
+      const posterUrlString = posterUrl.toString();
+      console.log(`Waiting for cached poster image: ${posterUrlString}`);
 
-    let operation = await ai.models.generateVideos({
+      // Wait up to 30 seconds for the poster image to be generated and cached
+      const cachedImage = await waitForCachedImage(
+        posterUrlString,
+        30000,
+        1000
+      );
+
+      if (cachedImage) {
+        posterImageData = cachedImage;
+        console.log(`Using cached poster image (${cachedImage.mimeType})`);
+      } else {
+        console.warn(
+          `Poster image not found in cache after timeout: ${posterUrl}`
+        );
+        console.warn(`Video will be generated without poster reference`);
+      }
+    }
+
+    // Generate video with or without poster image
+    const generateParams = {
       model: VideoConfig.model,
       prompt: prompt,
-    });
+    };
+
+    if (posterImageData) {
+      generateParams.image = posterImageData;
+      console.log(`Generating video with poster image reference`);
+    } else {
+      console.log(`Generating video without poster image reference`);
+    }
+
+    let operation = await ai.models.generateVideos(generateParams);
 
     while (!operation.done) {
       console.log("Waiting for video generation to complete...");
@@ -41,7 +76,7 @@ export async function processVideo(res, url, VideoConfig) {
     }
 
     const videoUrl = operation.response?.generatedVideos[0]?.video.uri;
-    console.log(`Video  marked as completed with URL: ${videoUrl}`);
+    console.log(`Video marked as completed with URL: ${videoUrl}`);
 
     console.log("Downloading video...");
     const videoResponse = await fetch(videoUrl, {

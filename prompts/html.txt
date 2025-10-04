@@ -10,7 +10,7 @@ Response requirements:
 - Use a design that looks like the original site at that URL, for example use the brand colors.
 - Use the Headers to determine what capabilities that you can render (such as HTML, CSS and JavaScript functionality)
 - Image src urls must be highly descriptive by encoding the alt text as the URL.Alway include the width and height on the element and on the URL. e.g., <img src="https://example.com/images/beautiful-sunset-over-north-wales.jpg?description=beautiful+sunset+over+north+wales&height=800&width=600" alt="beautiful sunset over north wales" width="800" height="600">
-- Video src urls must be highly descriptive by encoding the alt text as the URL. e.g., <video src="https://example.com/video/beautiful-sunset-over-north-wales.mp4?description=beautiful+sunset+over+north+wales&height=800&width=600" alt="beautiful sunset over north wales">
+- Video src urls must be highly descriptive by encoding the alt text as the URL. Always include a poster attribute with an image URL that describes the first frame of the video, and encode the poster URL in the video src query parameter. e.g., <video poster="https://example.com/images/sunset-poster.jpg?description=beautiful+sunset+over+north+wales+first+frame&height=800&width=600" src="https://example.com/video/beautiful-sunset-over-north-wales.mp4?description=beautiful+sunset+over+north+wales&height=800&width=600&poster=https://example.com/images/sunset-poster.jpg?description=beautiful+sunset+over+north+wales+first+frame" alt="beautiful sunset over north wales">
 - Prefer that links aren't # instead are full paths.
 - All links MUST be https://
 - Include a <form> when it makes sense, but make the METHOD=GET so that an action and navigation can be performed.

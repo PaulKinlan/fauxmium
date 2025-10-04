@@ -1,19 +1,23 @@
 import { generatePrompt } from "../lib/prompts.js";
 import { generateImage } from "../lib/aiAdapter.js";
 import { costCalculator } from "../lib/costCalculator.js";
+import { cacheImage } from "../lib/imageCache.js";
 
 export async function processImage(res, url, imageConfig) {
   const requestUrl = url.searchParams.get("url");
   const newUrl = new URL(requestUrl);
   const description = newUrl.searchParams.get("description");
+  const debug = false; // used later when we add global debuging
 
-  let contentType = "image/png";
+  const contentType = "image/png";
+  const displayUrl = debug
+    ? requestUrl
+    : requestUrl.replace(/(http|https):\/\//, "").substring(0, 30);
   res.setHeader("Content-Type", contentType);
 
   console.log(
-    `Image request for URL: ${requestUrl} with description: ${description}`
+    `Image request for URL: ${displayUrl} with description: ${description}`
   );
-  console.log(`Server generating image for: ${requestUrl}`);
   try {
     const prompt = await generatePrompt("image", {
       description: description || requestUrl,
@@ -24,6 +28,18 @@ export async function processImage(res, url, imageConfig) {
       prompt
     );
 
+    newUrl.search = ""; // strip any params
+    newUrl.hash = ""; // strip any hash
+    console.log(
+      `Base64 image generated for: ${base64Data.toString().substring(0, 30)}`
+    );
+
+    // Cache the generated image for potential use by video generation
+    cacheImage(newUrl.toString(), {
+      imageBytes: base64Data,
+      mimeType,
+    });
+
     // Decode base64 to binary using Buffer
     const binaryData = Buffer.from(base64Data, "base64");
 
@@ -32,7 +48,7 @@ export async function processImage(res, url, imageConfig) {
     const costResult = cost({ usage, END: true });
 
     console.log(
-      `Image generated for ${requestUrl} with cost: $${costResult.cost.toFixed(
+      `Image generated for ${displayUrl} with cost: $${costResult.cost.toFixed(
         6
       )}`
     );
