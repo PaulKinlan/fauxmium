@@ -34,7 +34,7 @@ Place in a `.env` file at project root or export via your shell:
 - ANTHROPIC_API_KEY — for Anthropic text
 - GROQ_API_KEY — for Groq text
 
-The CLI automatically resolves keys from the environment. You can override with flags (`--api-key`, `--image-api-key`).
+The CLI automatically resolves keys from the environment. You can override with flags (`--api-key`, `--image-api-key`, `--video-api-key`).
 
 Example `.env`:
 
@@ -73,28 +73,50 @@ Common options:
 - --image-provider Image provider (currently gemini/google only)
 - --image-model, -i Image model (e.g., gemini-2.5-flash-image-preview)
 - --image-api-key Explicit API key for image provider (overrides env)
+- --video-provider Video provider (currently gemini/google only)
+- --video-model, -v Video model (e.g., veo-3.0-fast-generate-preview)
+- --video-api-key Explicit API key for video provider (overrides env)
 
 Image configuration:
 
 - Images are currently supported only via Google/Gemini.
 - You can configure image settings via:
-  - the same provider command’s nested `images` subcommand, or
+  - the same provider command's nested `images` subcommand, or
+  - the top-level `images` command with provider subcommands, or
+  - the options on the main command.
+
+Video configuration:
+
+- Videos are currently supported only via Google/Gemini.
+- You can configure video settings via:
+  - the same provider command's nested `videos` subcommand, or
+  - the top-level `video` command with provider subcommands, or
   - the options on the main command.
 
 Examples:
 
 ```bash
-# Default: Gemini text + images
+# Default: Gemini text + images + videos
 npx fauxmium
 
-# OpenAI for text, Gemini for images
-npx fauxmium openai --api-key $OPENAI_API_KEY --image-api-key $GEMINI_API_KEY
+# OpenAI for text, Gemini for images and videos
+npx fauxmium openai --api-key $OPENAI_API_KEY --image-api-key $GEMINI_API_KEY --video-api-key $GEMINI_API_KEY
 
 # Change port/host and open DevTools
 npx fauxmium -p 8080 -H 127.0.0.1 --devtools
 
-# Choose text and image models explicitly (Gemini)
-npx fauxmium gemini -m gemini-2.5-flash-lite --image-model gemini-2.5-flash-image-preview
+# Choose text, image, and video models explicitly (Gemini)
+npx fauxmium gemini -m gemini-2.5-flash -i gemini-2.5-flash-image-preview -v veo-3.0-fast-generate-preview
+
+# Use top-level image command for image-specific configuration
+npx fauxmium images gemini --image-model gemini-2.5-flash-image-preview
+
+# Use top-level video command for video-specific configuration
+npx fauxmium video gemini --video-model veo-3.0-generate-001
+
+# Use nested subcommands for configuration
+npx fauxmium anthropic images --image-provider gemini --image-model gemini-2.5-flash-image-preview
+npx fauxmium anthropic videos --video-provider gemini --video-model veo-3.0-fast-generate-preview
 ```
 
 For full help and the list of default models per provider:
@@ -149,12 +171,12 @@ These are read from disk on each request, so you can tweak prompts without resta
   - Generate inline CSS and JS within the HTML.
 - State:
   - Navigations are stateless; there is no cross‑page memory at present.
-- Images:
-  - Only Google/Gemini image generation is supported at this time.
+- Images and Videos:
+  - Only Google/Gemini image and video generation is supported at this time.
 - Costs and usage:
   - Pricing is fetched from Helicone per model; unknown models default to 0.
   - Some providers may not report usage; such requests are counted as 0 cost.
-  - Image generation costs are not currently tracked.
+  - Image and video generation costs are not currently tracked.
 - Headers:
   - Referer is stripped (set to empty) for proxy‑bound requests as a temporary workaround.
 
