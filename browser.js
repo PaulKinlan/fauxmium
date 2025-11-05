@@ -83,7 +83,8 @@ function startBrowser(hostname, port, devtools) {
 
       // Allow requests to whitelisted third-party domains (like Google Fonts, esm.sh, unpkg.com)
       if (isAllowedDomain(url)) {
-        console.log(`Allowing request to whitelisted domain: ${url}`);
+        const hostname = new URL(url).hostname;
+        console.log(`Allowing request to whitelisted domain: ${hostname}`);
         await request.continue();
         return;
       }

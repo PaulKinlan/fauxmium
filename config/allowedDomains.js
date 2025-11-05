@@ -24,8 +24,15 @@ export function isAllowedDomain(url) {
     const hostname = urlObj.hostname;
     
     return ALLOWED_DOMAINS.some(allowedDomain => {
-      // Exact match or subdomain match
-      return hostname === allowedDomain || hostname.endsWith(`.${allowedDomain}`);
+      // Exact match
+      if (hostname === allowedDomain) {
+        return true;
+      }
+      // Subdomain match - ensure the allowed domain is at the end and preceded by a dot
+      if (hostname.endsWith(`.${allowedDomain}`)) {
+        return true;
+      }
+      return false;
     });
   } catch (e) {
     // Invalid URL
