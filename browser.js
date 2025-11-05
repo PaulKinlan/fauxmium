@@ -2,6 +2,7 @@ import fs from "fs/promises";
 import path from "path";
 import puppeteer from "puppeteer";
 import { fileURLToPath } from "url";
+import { isAllowedDomain } from "./config/allowedDomains.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -76,6 +77,14 @@ function startBrowser(hostname, port, devtools) {
       const newHeaders = { ...headers, Referer: "" };
 
       if (url.startsWith(`http://${hostname}:${port}/`)) {
+        await request.continue();
+        return;
+      }
+
+      // Allow requests to whitelisted third-party domains (like Google Fonts, esm.sh, unpkg.com)
+      if (isAllowedDomain(url)) {
+        const hostname = new URL(url).hostname;
+        console.log(`Allowing request to whitelisted domain: ${hostname}`);
         await request.continue();
         return;
       }

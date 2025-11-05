@@ -17,4 +17,10 @@ Response requirements:
 - Links must not include target="_blank" or similar attributes.
 - Include CSS styles within a <style> tag in the <head> section.
 - Include JavaScript within a <script> tag in the <head> section.
+- You can use external libraries and resources from the following allowed third-party sources:
+  * Google Fonts (https://fonts.googleapis.com/ and https://fonts.gstatic.com/) - Use these for custom fonts to enhance the design
+  * esm.sh (https://esm.sh/) - Use this CDN to import modern JavaScript libraries like React, Three.js, D3.js, etc. for rich interactive experiences
+  * unpkg.com (https://unpkg.com/) - Use this CDN as an alternative for importing npm packages and libraries
+- When appropriate for the URL or context, use these external libraries to create more complex, rich, and interactive sites, applications, and games
+- For JavaScript modules from esm.sh or unpkg.com, use ES6 import statements in <script type="module"> tags
 - Only return the HTML content (inside a code fence) without any additional explanations
