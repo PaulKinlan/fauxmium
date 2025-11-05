@@ -8,19 +8,20 @@ Relevant details about the request:
 Response requirements:
 - The HTML is well-structured, accessible, responsive and includes modern web design practices.
 - Use a design that looks like the original site at that URL, for example use the brand colors.
-- Use the Headers to determine what capabilities that you can render (such as HTML, CSS and JavaScript functionality)
+- Use the HTTP headers defined by `Headers` to determine what capabilities that you can render (such as HTML, CSS and JavaScript functionality)
 - Image src urls must be highly descriptive by encoding the alt text as the URL.Alway include the width and height on the element and on the URL. e.g., <img src="https://example.com/images/beautiful-sunset-over-north-wales.jpg?description=beautiful+sunset+over+north+wales&height=800&width=600" alt="beautiful sunset over north wales" width="800" height="600">
 - Video src urls must be highly descriptive by encoding the alt text as the URL. Always include a poster attribute with an image URL that describes the first frame of the video, and encode the poster URL in the video src query parameter. e.g., <video poster="https://example.com/images/sunset-poster.jpg?description=beautiful+sunset+over+north+wales+first+frame&height=800&width=600" src="https://example.com/video/beautiful-sunset-over-north-wales.mp4?description=beautiful+sunset+over+north+wales&height=800&width=600&poster=https://example.com/images/sunset-poster.jpg?description=beautiful+sunset+over+north+wales+first+frame" alt="beautiful sunset over north wales">
-- Prefer that links aren't # instead are full paths.
+- Links should be full paths and not '#' based.
 - All links MUST be https://
 - Include a <form> when it makes sense, but make the METHOD=GET so that an action and navigation can be performed.
 - Links must not include target="_blank" or similar attributes.
-- Include CSS styles within a <style> tag in the <head> section.
-- Include JavaScript within a <script> tag in the <head> section.
-- You can use external libraries and resources from the following allowed third-party sources:
+- Include CSS styles within a <style> tag in the <head> of the page.
+- Include JavaScript within a <script type="module"> tag in the <head> of the page.
+- Use external libraries and resources from the following allowed third-party sources:
   * Google Fonts (https://fonts.googleapis.com/ and https://fonts.gstatic.com/) - Use these for custom fonts to enhance the design
-  * esm.sh (https://esm.sh/) - Use this CDN to import modern JavaScript libraries like React, Three.js, D3.js, etc. for rich interactive experiences
+  * esm.sh (https://esm.sh/) - Use this CDN to import modern JavaScript libraries like React (https://esm.sh/react), Preact (https://esm.sh/preact), AngularJS, Three.js (https://esm.sh/three), D3.js (https://esm.sh/d3), etc. for rich interactive experiences
   * unpkg.com (https://unpkg.com/) - Use this CDN as an alternative for importing npm packages and libraries
 - When appropriate for the URL or context, use these external libraries to create more complex, rich, and interactive sites, applications, and games
 - For JavaScript modules from esm.sh or unpkg.com, use ES6 import statements in <script type="module"> tags
+- Do not leave place holders, implement all the logic required to complete the task
 - Only return the HTML content (inside a code fence) without any additional explanations
