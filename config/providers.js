@@ -15,6 +15,7 @@ export const PROVIDERS = {
         "gemini-flash-latest",
         "gemini-2.5-pro",
         "gemini-2.5-flash",
+        "gemini-3-pro-preview",
       ],
     },
     image: {
