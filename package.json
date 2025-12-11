@@ -1,6 +1,6 @@
 {
   "name": "fauxmium",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Fauxmium is a web browser that browses an entirely fictitious web, generated on the fly using generative AI. It uses Puppeteer to control a headless instance of Chrome for Testers, intercepting network requests and routing them through a proxy to Gemini that generates HTML and images based on the requested URL and headers.",
   "main": "index.js",
   "type": "module",
