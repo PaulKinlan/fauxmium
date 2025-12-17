@@ -9,13 +9,14 @@ export const PROVIDERS = {
     normalizedName: "google",
     envKeys: ["GEMINI_API_KEY", "GOOGLE_API_KEY"],
     text: {
-      defaultModel: "gemini-flash-lite-latest",
+      defaultModel: "gemini-3-flash-preview",
       choices: [
         "gemini-flash-lite-latest",
         "gemini-flash-latest",
         "gemini-2.5-pro",
         "gemini-2.5-flash",
         "gemini-3-pro-preview",
+        "gemini-3-flash-preview",
       ],
     },
     image: {
