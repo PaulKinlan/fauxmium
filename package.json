@@ -27,7 +27,7 @@
     "@ai-sdk/groq": "^2.0.20",
     "@ai-sdk/openai": "^2.0.32",
     "@google/genai": "^1.17.0",
-    "ai": "^5.0.47",
+    "ai": "^5.0.52",
     "dotenv": "^17.2.2",
     "puppeteer": "*",
     "yargs": "^18.0.0"
