@@ -23,8 +23,8 @@ export const PROVIDERS = {
       ],
     },
     image: {
-      defaultModel: "gemini-2.5-flash-image-preview",
-      choices: ["gemini-2.5-flash-image-preview"],
+      defaultModel: "gemini-2.5-flash-image",
+      choices: ["gemini-2.5-flash-image"],
       supported: true,
     },
     video: {

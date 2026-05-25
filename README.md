@@ -71,7 +71,7 @@ Common options:
 - --model, -m Text model (provider-specific defaults/choices)
 - --api-key Explicit API key for text provider (overrides env)
 - --image-provider Image provider (currently gemini/google only)
-- --image-model, -i Image model (e.g., gemini-2.5-flash-image-preview)
+- --image-model, -i Image model (e.g., gemini-2.5-flash-image)
 - --image-api-key Explicit API key for image provider (overrides env)
 - --video-provider Video provider (currently gemini/google only)
 - --video-model, -v Video model (e.g., veo-3.0-fast-generate-preview)
@@ -106,16 +106,16 @@ npx fauxmium openai --api-key $OPENAI_API_KEY --image-api-key $GEMINI_API_KEY --
 npx fauxmium -p 8080 -H 127.0.0.1 --devtools
 
 # Choose text, image, and video models explicitly (Gemini)
-npx fauxmium gemini -m gemini-2.5-flash -i gemini-2.5-flash-image-preview -v veo-3.0-fast-generate-preview
+npx fauxmium gemini -m gemini-2.5-flash -i gemini-2.5-flash-image -v veo-3.0-fast-generate-preview
 
 # Use top-level image command for image-specific configuration
-npx fauxmium images gemini --image-model gemini-2.5-flash-image-preview
+npx fauxmium images gemini --image-model gemini-2.5-flash-image
 
 # Use top-level video command for video-specific configuration
 npx fauxmium video gemini --video-model veo-3.0-generate-001
 
 # Use nested subcommands for configuration
-npx fauxmium anthropic images --image-provider gemini --image-model gemini-2.5-flash-image-preview
+npx fauxmium anthropic images --image-provider gemini --image-model gemini-2.5-flash-image
 npx fauxmium anthropic videos --video-provider gemini --video-model veo-3.0-fast-generate-preview
 ```
 
