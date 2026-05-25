@@ -56,7 +56,9 @@ export const PROVIDERS = {
       ],
     },
     image: {
-      supported: false, // Falls back to gemini
+      defaultModel: "dall-e-3",
+      choices: ["dall-e-3", "dall-e-2"],
+      supported: true,
     },
     video: {
       supported: false, // Falls back to gemini

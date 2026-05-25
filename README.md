@@ -148,7 +148,7 @@ Components:
     - GET /cost — In‑memory session usage/cost summary (used by the extension).
   - Loads model pricing from Helicone for cost tracking (`loadCosts`).
 - Text/Image Generation (`/lib`)
-  - `lib/aiAdapter.js` — Text streaming via Vercel AI SDK across providers (Google/OpenAI/Anthropic/Groq). Images via `@google/genai` (Google only).
+  - `lib/aiAdapter.js` — Unified adapter for text streaming, image generation, and video generation across providers using the Vercel AI SDK.
   - `lib/costCalculator.js` — Tracks token usage and cost per request/session.
   - `lib/processChunks.js` — Applies processors and manages stream flush with an END sentinel.
   - `lib/streamCodeBlocks.js` — Extracts ```html fenced content from the text stream.

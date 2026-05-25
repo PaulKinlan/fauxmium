@@ -4,8 +4,7 @@ This document tracks what works, what's left to build, the current status, known
 
 ## Current Status
 
-- Multi-provider text generation is implemented and stable for Google (Gemini), OpenAI, Anthropic, and Groq via the Vercel AI SDK.
-- Image generation is implemented for Google (Gemini) only via `@google/genai`.
+- Image and video generation are implemented using the Vercel AI SDK.
 - Cost tracking is active using usage metadata and Helicone pricing; surfaced via a Chrome extension popup.
 - Request interception policy is enforced (navigation + images only), ensuring deterministic I/O to the proxy and inline assets in generated HTML.
 
@@ -68,7 +67,6 @@ This document tracks what works, what's left to build, the current status, known
 
 ## Decisions Evolution
 
-- Adopted Vercel AI SDK for text to unify provider integrations and streaming behavior.
-- Kept image generation with `@google/genai` for now due to capability and stability.
+- Migrated image and video generation fully onto the Vercel AI SDK (under aiAdapter.js), eliminating raw @google/genai dependencies.
 - Enforced a strict interception policy to simplify the pipeline and encourage fully self-contained HTML.
 - Cost visibility is first-class via `/cost` and the Chrome extension; future work will improve controls and accuracy for providers without usage data.

@@ -31,7 +31,7 @@ This document tracks the current work focus, recent changes, next steps, active 
 ## Active Decisions and Patterns
 
 - Proxy Pattern with strict subresource policy (nav + images only); external CSS/JS are blocked and should be generated inline.
-- Vercel AI SDK used for text streaming; `@google/genai` used directly for image generation (Google-only).
+- Vercel AI SDK is used for all text streaming, image generation, and video generation, providing unified provider adapter patterns and removing raw @google/genai.
 - Costs are computed from usage metadata when available; 0-cost fallback if usage is missing or pricing unavailable.
 - Stateless navigations by design; no memory between requests (yet).
 - Warning screen shown at startup to indicate synthetic content.

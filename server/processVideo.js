@@ -1,16 +1,13 @@
 import { generatePrompt } from "../lib/prompts.js";
+import { generateVideo } from "../lib/aiAdapter.js";
 import { costCalculator } from "../lib/costCalculator.js";
 import { waitForCachedImage } from "../lib/imageCache.js";
-
-import { GoogleGenAI } from "@google/genai";
 
 export async function processVideo(res, url, VideoConfig) {
   const requestUrl = url.searchParams.get("url");
   const newUrl = new URL(requestUrl);
   const description = newUrl.searchParams.get("description");
   const posterUrl = new URL(encodeURI(newUrl.searchParams.get("poster")));
-
-  const ai = new GoogleGenAI({ apiKey: VideoConfig.apiKey });
 
   const contentType = "video/mp4";
   res.setHeader("Content-Type", contentType);
@@ -52,38 +49,13 @@ export async function processVideo(res, url, VideoConfig) {
       }
     }
 
-    // Generate video with or without poster image
-    const generateParams = {
-      model: VideoConfig.model,
-      prompt: prompt,
-    };
+    const { mimeType, base64Data } = await generateVideo(
+      VideoConfig,
+      prompt,
+      posterImageData ? { image: posterImageData } : {}
+    );
 
-    if (posterImageData) {
-      generateParams.image = posterImageData;
-      console.log(`Generating video with poster image reference`);
-    } else {
-      console.log(`Generating video without poster image reference`);
-    }
-
-    let operation = await ai.models.generateVideos(generateParams);
-
-    while (!operation.done) {
-      console.log("Waiting for video generation to complete...");
-      await new Promise((resolve) => setTimeout(resolve, 10000));
-      operation = await ai.operations.getVideosOperation({
-        operation: operation,
-      });
-    }
-
-    const videoUrl = operation.response?.generatedVideos[0]?.video.uri;
-    console.log(`Video marked as completed with URL: ${videoUrl}`);
-
-    console.log("Downloading video...");
-    const videoResponse = await fetch(videoUrl, {
-      headers: {
-        "x-goog-api-key": VideoConfig.apiKey,
-      },
-    });
+    const binaryData = Buffer.from(base64Data, "base64");
 
     const cost = costCalculator(VideoConfig.model, requestUrl);
     // // https://ai.google.dev/gemini-api/docs/pricing#gemini-2.5-flash-Video-preview 1290 tokens = $0.000387
@@ -98,14 +70,13 @@ export async function processVideo(res, url, VideoConfig) {
         6
       )}`
     );
-    const mimeType = videoResponse.headers.get("Content-Type") || "video/mp4";
     // Return binary data with proper content type
     res.setHeader("Content-Type", mimeType);
     res.setHeader(
       "Content-Length",
-      videoResponse.headers.get("Content-Length")
+      binaryData.length.toString()
     );
-    res.end(Buffer.from(await videoResponse.arrayBuffer()));
+    res.end(binaryData);
   } catch (e) {
     console.error(`Failed to generate Video for ${requestUrl}:`);
     console.error("error name: ", e.name);

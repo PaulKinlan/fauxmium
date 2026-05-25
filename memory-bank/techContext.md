@@ -8,11 +8,10 @@ This document outlines the technologies used, development setup, technical const
 - Puppeteer — controls a visible Chrome instance, installs/sets up the extension, and intercepts network requests
 - Vercel AI SDK (`ai`) — unified streaming interface for multiple text providers
 - AI provider SDKs:
-  - `@ai-sdk/google` (text via Vercel AI SDK)
+  - `@ai-sdk/google` (text, images, and videos via Vercel AI SDK)
   - `@ai-sdk/openai` (text via Vercel AI SDK)
   - `@ai-sdk/anthropic` (text via Vercel AI SDK)
   - `@ai-sdk/groq` (text via Vercel AI SDK)
-  - `@google/genai` (images for Google/Gemini only)
 - `yargs` — command-line interface and subcommands
 - `dotenv` — environment variable configuration
 
@@ -119,7 +118,6 @@ index.js resolves keys automatically per selected provider. You can also pass ex
 - @ai-sdk/openai
 - @ai-sdk/anthropic
 - @ai-sdk/groq
-- @google/genai
 - puppeteer
 - yargs
 - dotenv

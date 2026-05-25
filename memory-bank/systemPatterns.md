@@ -35,7 +35,7 @@ Fauxmium is composed of these main components:
 
 5. Libraries (`/lib`)
 
-   - `aiAdapter.js` — Provider-agnostic text streaming via Vercel AI SDK; image generation via `@google/genai` (Google only).
+   - `aiAdapter.js` — Centralized provider-agnostic adapter for text streaming, image generation, and video generation using the Vercel AI SDK.
    - `costCalculator.js` — Loads per-model costs from Helicone and accumulates per-request/session costs using usage metadata.
    - `prompts.js` — Loads and interpolates prompt templates from `prompts/*.txt`.
    - `processChunks.js` — Applies processors to streamed chunks and flushes an `END` sentinel.
@@ -98,7 +98,7 @@ Fauxmium is composed of these main components:
 - Puppeteer for request interception and extension install/configuration.
 - Node.js HTTP server with minimal routing for speed and simplicity.
 - Vercel AI SDK (`ai`) for uniform streaming across multiple text providers.
-- Direct `@google/genai` usage for image generation (until image parity exists across providers).
+- Unified provider abstraction under Vercel AI SDK, consolidating text, image, and video generation under a single central interface.
 - Dynamic prompt templates on disk for hot updates without restart.
 - Externalized cost model lookup (Helicone), with 0-cost fallback on errors.
 
