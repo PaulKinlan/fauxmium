@@ -4,6 +4,8 @@ Relevant details about the request:
 - URL: ###requestUrl###
 - Resource Type: ###requestType###
 - Headers: ###requestHeaders###
+- Date: ###currentDate###
+- Time: ###currentTime###
 
 Response requirements:
 - The HTML is well-structured, accessible, responsive and includes modern web design practices.
