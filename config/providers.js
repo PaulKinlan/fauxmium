@@ -9,7 +9,7 @@ export const PROVIDERS = {
     normalizedName: "google",
     envKeys: ["GEMINI_API_KEY", "GOOGLE_API_KEY"],
     text: {
-      defaultModel: "gemini-3-flash-preview",
+      defaultModel: "gemini-3.5-flash",
       choices: [
         "gemini-flash-lite-latest",
         "gemini-flash-latest",
@@ -17,6 +17,9 @@ export const PROVIDERS = {
         "gemini-2.5-flash",
         "gemini-3-pro-preview",
         "gemini-3-flash-preview",
+        "gemini-3.1-pro",
+        "gemini-3.1-flash-lite",
+        "gemini-3.5-flash",
       ],
     },
     image: {
@@ -40,8 +43,17 @@ export const PROVIDERS = {
     normalizedName: "openai",
     envKeys: ["OPENAI_API_KEY"],
     text: {
-      defaultModel: "gpt-5-nano",
-      choices: ["gpt-5-nano", "gpt-4-mini", "gpt-5-pro"],
+      defaultModel: "gpt-5.5-instant",
+      choices: [
+        "gpt-4-mini",
+        "gpt-5-nano",
+        "gpt-5-pro",
+        "gpt-5.4-nano",
+        "gpt-5.4-mini",
+        "gpt-5.4",
+        "gpt-5.5-instant",
+        "gpt-5.5",
+      ],
     },
     image: {
       supported: false, // Falls back to gemini
@@ -55,11 +67,14 @@ export const PROVIDERS = {
     normalizedName: "anthropic",
     envKeys: ["ANTHROPIC_API_KEY"],
     text: {
-      defaultModel: "claude-3-7-sonnet-latest",
+      defaultModel: "claude-sonnet-4-6",
       choices: [
         "claude-sonnet-4-0",
         "claude-3-7-sonnet-latest",
         "claude-3-opus-latest",
+        "claude-haiku-4-5",
+        "claude-sonnet-4-6",
+        "claude-opus-4-7",
       ],
     },
     image: {
@@ -74,13 +89,14 @@ export const PROVIDERS = {
     normalizedName: "groq",
     envKeys: ["GROQ_API_KEY"],
     text: {
-      defaultModel: "moonshotai/kimi-k2-instruct-0905",
+      defaultModel: "llama-3.3-70b-versatile",
       choices: [
-        "llama-3.3-70b-versatile",
         "llama-3.1-8b-instant",
+        "llama-3.3-70b-versatile",
+        "llama-4-scout",
+        "qwen/qwen3-32b",
         "openai/gpt-oss-120b",
         "moonshotai/kimi-k2-instruct-0905",
-        "qwen/qwen3-32b",
         "groq/compound",
       ],
     },
