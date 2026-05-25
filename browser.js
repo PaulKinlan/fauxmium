@@ -105,12 +105,28 @@ function startBrowser(hostname, port, devtools) {
 
       let proxyUrl = "";
 
+      let colorScheme = "light";
+      let viewportWidth = 1280;
+      let viewportHeight = 800;
+      try {
+        const data = await page.evaluate(() => ({
+          colorScheme: window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light",
+          width: window.innerWidth,
+          height: window.innerHeight,
+        }));
+        colorScheme = data.colorScheme;
+        viewportWidth = data.width || viewportWidth;
+        viewportHeight = data.height || viewportHeight;
+      } catch (e) {
+        // Safe fallback if target is not fully loaded/evaluated yet
+      }
+
       if (request.isNavigationRequest()) {
         proxyUrl = `http://${hostname}:${port}/html?url=${encodeURIComponent(
           url
         )}&type=${resourceType}&headers=${encodeURIComponent(
           JSON.stringify(headers)
-        )}`;
+        )}&viewportWidth=${viewportWidth}&viewportHeight=${viewportHeight}&colorScheme=${colorScheme}`;
       } else if (resourceType === "image") {
         proxyUrl = `http://${hostname}:${port}/image?url=${encodeURIComponent(
           url

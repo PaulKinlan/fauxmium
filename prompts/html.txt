@@ -3,14 +3,23 @@ Create the HTML for a web page that would be served at the URL: ###requestUrl###
 Relevant details about the request:
 - URL: ###requestUrl###
 - Resource Type: ###requestType###
-- Headers: ###requestHeaders###
+- Referrer / Previous Page: ###referer###
 - Date: ###currentDate###
 - Time: ###currentTime###
+- Timezone: ###timezone###
+- Country: ###country###
+- User Preferred Languages: ###acceptLanguage###
+- Browser Viewport Size: ###viewportWidth###px width by ###viewportHeight###px height
+- Color Scheme Preference: ###colorScheme###
 
 Response requirements:
 - The HTML is well-structured, accessible, responsive and includes modern web design practices.
 - Use a design that looks like the original site at that URL, for example use the brand colors.
 - Use the HTTP headers defined by `Headers` to determine what capabilities that you can render (such as HTML, CSS and JavaScript functionality)
+- Respect the User's Color Scheme Preference (###colorScheme###) by designing the page colors, contrasts, and styles to perfectly match (e.g. use dark-mode styles if the preference is `dark`).
+- Ensure the layout is responsive and looks perfect on the given Browser Viewport Size (###viewportWidth###px width by ###viewportHeight###px height).
+- Adapt any localized references, formats, currency symbols, weather, or terms to the user's Country (###country###) and User Preferred Languages (###acceptLanguage###).
+- If a relevant Referrer / Previous Page (###referer###) is provided and makes sense, design a natural link or "Back" option to return to it.
 - Image src urls must be highly descriptive by encoding the alt text as the URL.Alway include the width and height on the element and on the URL. e.g., <img src="https://example.com/images/beautiful-sunset-over-north-wales.jpg?description=beautiful+sunset+over+north+wales&height=800&width=600" alt="beautiful sunset over north wales" width="800" height="600">
 - Video src urls must be highly descriptive by encoding the alt text as the URL. Always include a poster attribute with an image URL that describes the first frame of the video, and encode the poster URL in the video src query parameter. e.g., <video poster="https://example.com/images/sunset-poster.jpg?description=beautiful+sunset+over+north+wales+first+frame&height=800&width=600" src="https://example.com/video/beautiful-sunset-over-north-wales.mp4?description=beautiful+sunset+over+north+wales&height=800&width=600&poster=https://example.com/images/sunset-poster.jpg?description=beautiful+sunset+over+north+wales+first+frame" alt="beautiful sunset over north wales">
 - Links should be full paths and not '#' based.
