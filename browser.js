@@ -25,9 +25,17 @@ function startBrowser(hostname, port, devtools) {
     });
 
     browser.on("targetcreated", async (target) => {
-      if (target.type() === "page") {
-        const newPage = await target.page();
-        await setupRequestInterception(newPage);
+      try {
+        if (target.type() === "page") {
+          const newPage = await target.page();
+          if (newPage) {
+            newPage.on("console", (msg) => console.log(`[Browser Console] ${msg.text()}`));
+            newPage.on("pageerror", (err) => console.error(`[Browser Page Error] ${err.toString()}`));
+            await setupRequestInterception(newPage);
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to setup request interception for new target:", e);
       }
     });
 
@@ -53,6 +61,8 @@ function startBrowser(hostname, port, devtools) {
     );
 
     for (const page of pages) {
+      page.on("console", (msg) => console.log(`[Browser Console] ${msg.text()}`));
+      page.on("pageerror", (err) => console.error(`[Browser Page Error] ${err.toString()}`));
       await setupRequestInterception(page);
 
       // Before the user starts to use the page, set up a warning to that they know it's not a real browser.
@@ -103,24 +113,16 @@ function startBrowser(hostname, port, devtools) {
         return;
       }
 
-      let proxyUrl = "";
-
       let colorScheme = "light";
       let viewportWidth = 1280;
       let viewportHeight = 800;
-      try {
-        const data = await page.evaluate(() => ({
-          colorScheme: window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light",
-          width: window.innerWidth,
-          height: window.innerHeight,
-        }));
-        colorScheme = data.colorScheme;
-        viewportWidth = data.width || viewportWidth;
-        viewportHeight = data.height || viewportHeight;
-      } catch (e) {
-        // Safe fallback if target is not fully loaded/evaluated yet
+      const vp = page.viewport();
+      if (vp) {
+        viewportWidth = vp.width;
+        viewportHeight = vp.height;
       }
 
+      let proxyUrl = "";
       if (request.isNavigationRequest()) {
         proxyUrl = `http://${hostname}:${port}/html?url=${encodeURIComponent(
           url

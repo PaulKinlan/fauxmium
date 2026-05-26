@@ -54,19 +54,27 @@ async function run(textProviderName, argv) {
     `Using video provider: ${videoProvider}, model: ${videoGenerationModel}`
   );
 
+  if (!argv.verbose) {
+    console.log(
+      `\n💡 Tip: Run Fauxmium with the --verbose flag to see the exact prompts sent to the LLM and stream response outputs in real-time!`
+    );
+  }
+
   await startServer(
     hostname,
     port,
-    { provider: textProvider, apiKey: textApiKey, model: textGenerationModel },
+    { provider: textProvider, apiKey: textApiKey, model: textGenerationModel, verbose: argv.verbose },
     {
       provider: imageProvider,
       apiKey: imageApiKey,
       model: imageGenerationModel,
+      verbose: argv.verbose,
     },
     {
       provider: videoProvider,
       apiKey: videoApiKey,
       model: videoGenerationModel,
+      verbose: argv.verbose,
     }
   );
   startBrowser(hostname, port, enableDevTools);

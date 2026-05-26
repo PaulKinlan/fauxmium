@@ -20,6 +20,11 @@ export function commonNetOptions(y) {
       type: "boolean",
       default: false,
       describe: "Open DevTools on launch",
+    })
+    .option("verbose", {
+      type: "boolean",
+      default: false,
+      describe: "Enable verbose logging to see raw LLM inputs and stream responses in real-time",
     });
 }
 
