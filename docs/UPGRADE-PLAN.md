@@ -23,6 +23,12 @@ The source remains small Node ES modules. No web framework, build system, databa
 
 ## Model catalog and evidence
 
+**Re-verified 2026-09-18:** every ID below was checked again against first-party documentation; no ID
+needed changing. Two were checked specifically because they look like reseller names and are
+first-party correct: `grok-imagine-image-2.0` (the Imagine page uses it for generation and editing) and
+`deepseek-flash` (documented, with `deepseek-v4-flash` as a legacy alias). Published prices per
+artifact, and the gaps they expose, are in [IMPROVEMENT-NOTES.md](IMPROVEMENT-NOTES.md).
+
 `lib/models.js` is the maintained catalog. The CLI prints it directly. Defaults use Flash-Lite for lower latency/cost rather than silently moving every request to the most expensive flagship. Video remains disabled by default.
 
 | Provider | Included text IDs | Included media IDs | Official evidence |

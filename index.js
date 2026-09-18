@@ -32,7 +32,7 @@ const argv = yargs(hideBin(process.argv))
 
 if (argv.listModels) {
   console.table(listModels());
-  console.log("Verified 2026-09-17. Preview models may change; access depends on your account. See docs/UPGRADE-PLAN.md.");
+  console.log("Verified 2026-09-18. Preview models may change; access depends on your account. See docs/UPGRADE-PLAN.md and docs/IMPROVEMENT-NOTES.md.");
 } else {
   let server;
   let browser;

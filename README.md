@@ -54,7 +54,7 @@ node index.js -t gemini:gemini-3.8-flash -v gemini:gemini-omni-1.1-flash
 node index.js -t xai:grok-4.6 -i xai:grok-imagine-image-2.0 -v xai:grok-imagine-video-1.5
 ```
 
-`--list-models` lists a curated catalog verified on **2026-09-17**, including GPT-6 Astra, GPT-5.6, Claude Fable 5.1/Opus 5/Sonnet 5, Nano Banana, Veo, DeepSeek and Mistral. Bare IDs such as `gemini-3.8-flash` still work. Provider-qualified IDs allow newer models in supported API families without waiting for a catalog update. Model access, preview availability, pricing and regional restrictions depend on your provider account.
+`--list-models` lists a curated catalog re-verified on **2026-09-18** (per-artifact costs and what to improve next: `docs/IMPROVEMENT-NOTES.md`), including GPT-6 Astra, GPT-5.6, Claude Fable 5.1/Opus 5/Sonnet 5, Nano Banana, Veo, DeepSeek and Mistral. Bare IDs such as `gemini-3.8-flash` still work. Provider-qualified IDs allow newer models in supported API families without waiting for a catalog update. Model access, preview availability, pricing and regional restrictions depend on your provider account.
 
 Claude does not generate image/video files; choose another provider for those capabilities. Sora is not offered because OpenAI schedules its video API shutdown for September 24, 2026. See [the upgrade plan and official sources](docs/UPGRADE-PLAN.md).
 
