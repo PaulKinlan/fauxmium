@@ -1,25 +1,25 @@
-# Project Progress
+# Progress
 
-This document tracks what works, what's left to build, the current status, known issues, and the evolution of project decisions.
+## Implemented
 
-## What Works
+- Multi-provider streaming HTML and image generation; opt-in Google/xAI video.
+- Current model suggestions, bare-ID compatibility, capability/key validation and `--list-models`.
+- Private loopback proxy, minimized request data, generated-page CSP and plaintext errors.
+- Awaited startup, shutdown cleanup, deadlines, disconnect cancellation and backpressure.
+- Shared in-flight media generation, 64 MiB session cache, four concurrent media jobs and byte-range responses.
+- Node built-in tests and a headless Chrome smoke test with mocked providers.
 
-- The application successfully launches a Puppeteer-controlled Chrome browser.
-- Request interception for navigation and image requests is functional.
-- The local proxy server correctly receives intercepted requests.
-- The server can communicate with the Google Gemini API to generate HTML and images.
-- The generated content is successfully rendered in the browser.
-- The application is configurable via command-line arguments.
+## Not yet validated live
 
-## What's Left to Build
+Provider credentials/entitlements, paid model output quality, real clip decoding and provider-side cancellation/billing. The Chrome test uses mock video bytes to verify routing, not playback.
 
-- **CSS and JavaScript Generation**: The application currently only generates HTML and images. Support for generating CSS and JavaScript is a major feature to be added.
-- **State Management**: There is no state management between page navigations, making each page generation an independent event.
-- **Improved Image Generation**: The image generation process needs to be improved to be more context-aware.
+## Remaining limitations
 
-## Known Issues
+- No cross-page story/site memory, persisted generation jobs or page history.
+- Media prompts have no surrounding-page context; requested layout dimensions do not select provider output sizes.
+- Media is buffered in memory and capped at 64 MiB per result.
+- Concurrency limits are not session spending ceilings; generated HTML controls are not trusted billing approvals.
+- CSP and page interception are not comprehensive Chromium egress isolation.
+- External CSS/JS assets are unsupported; inline CSS/JS already works.
 
-- The application is stateless, which can lead to a disjointed browsing experience.
-- The lack of CSS and JavaScript results in visually simple pages with lower interactivity.
-- Image generation can be slow and may not always produce relevant images because of the lack of context.
-- Error handling for network issues and API failures is minimal.
+Priorities and acceptance criteria: `docs/UPGRADE-PLAN.md`.

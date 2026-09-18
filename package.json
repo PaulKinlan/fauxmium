@@ -1,12 +1,18 @@
 {
   "name": "fauxmium",
   "version": "0.0.6",
-  "description": "Fauxmium is a web browser that browses an entirely fictitious web, generated on the fly using generative AI. It uses Puppeteer to control a headless instance of Chrome for Testers, intercepting network requests and routing them through a proxy to Gemini that generates HTML and images based on the requested URL and headers.",
+  "description": "A fictitious web generated as you browse: streaming HTML, images and opt-in video from multiple AI providers.",
   "main": "index.js",
   "type": "module",
   "bin": "./index.js",
+  "files": ["index.js", "browser.js", "server.js", "lib/", "pages/", "prompts/", "docs/"],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "test": "node --test test/core.test.js test/server.test.js",
+    "test:browser": "node --test test/browser.test.js"
+  },
+  "engines": {
+    "node": ">=22.12.0"
   },
   "keywords": [
     "Chrome",
@@ -22,9 +28,9 @@
     "url": "git@github.com:PaulKinlan/fauxmium.git"
   },
   "dependencies": {
-    "@google/genai": "^1.17.0",
-    "dotenv": "^17.2.2",
-    "puppeteer": "*",
-    "yargs": "^18.0.0"
+    "@google/genai": "^2.23.0",
+    "dotenv": "^17.4.2",
+    "puppeteer": "^25.11.0",
+    "yargs": "^18.1.0"
   }
 }

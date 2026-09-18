@@ -1,18 +1,11 @@
-# Active Context
+# Active context
 
-This document tracks the current work focus, recent changes, and next steps. It also captures active decisions, important patterns, and project insights.
+Updated 2026-09-17.
 
-## Current Focus
+The project now has independently selected text/image/video providers, a dated model catalog, Gemini Interactions/Veo, OpenAI Responses/Images, Claude Messages and xAI/DeepSeek/Mistral support. Video is opt-in. The catalog and official references are in `lib/models.js` and `docs/UPGRADE-PLAN.md`.
 
-- **Initial Project Analysis and Documentation**: The primary focus is on understanding the existing codebase and populating the memory bank with accurate and comprehensive documentation.
+This update also addresses request-header privacy, private proxy authentication, startup/shutdown, malformed URLs, raw/fenced HTML streaming, cancellation, backpressure, bounded media caching and video byte ranges. Dependencies were refreshed; the npm audit changed from 12 findings to zero.
 
-## Recent Changes
+Offline provider/HTTP tests and a real-Chrome smoke test are available. No paid provider calls were made, so account access, output quality and actual generated-video playback are unverified. See the plan's release gates before publishing.
 
-- **Populated Memory Bank**: All memory bank files (`projectbrief.md`, `productContext.md`, `systemPatterns.md`, `techContext.md`, `activeContext.md`, and `progress.md`) have been updated with information gathered from the source code and project files.
-
-## Next Steps
-
-- **Address Limitations**: The next phase of development should focus on addressing the known limitations of the project:
-  - Implement CSS and JavaScript generation to create more realistic and interactive web pages.
-  - Introduce a state management system to maintain context between navigations.
-  - Improve the image generation process by providing more context about the image's placement and the surrounding content.
+Next: budgeted live validation and trusted video approval, then persistent media jobs and site memory. Do not add Sora: OpenAI documents its video API shutdown for 2026-09-24. The current browser is experimental, not a complete network sandbox.

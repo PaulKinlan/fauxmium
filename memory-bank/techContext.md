@@ -1,23 +1,13 @@
-# Technical Context
+# Technical context
 
-This document outlines the technologies used, development setup, technical constraints, and dependencies for the Fauxmium project.
+- Node.js 22.12+; ES modules, native HTTP/fetch/streams, built-in test runner.
+- Puppeteer 25.x with its matching Chrome for Testing. Interactive launches are headed; the smoke test is headless.
+- `@google/genai` 2.x for current Gemini Interactions and Veo operations.
+- yargs 18.x for CLI parsing; dotenv 17.x for working-directory `.env` loading.
+- Native HTTP adapters for OpenAI, Anthropic, xAI, DeepSeek and Mistral; no additional SDKs.
 
-## Technologies
+Development: `npm ci`, configure only selected providers' environment keys, then `npm start`. Use `node index.js --list-models` without credentials. See README for all keys/options and `API_KEY`/`GOOGLE_API_KEY` compatibility.
 
-- **Node.js**: The runtime environment for the application.
-- **Puppeteer**: Used to control a headless instance of Chrome and intercept network requests.
-- **`@google/genai`**: The official Google library for interacting with the Gemini AI models.
-- **`yargs`**: A library for parsing command-line arguments.
-- **`dotenv`**: Used to manage environment variables, specifically the `GEMINI_API_KEY`.
+Checks: `npm test`, `npm run test:browser`, `npm audit`. No live provider calls are part of these tests. If install scripts are disabled, install matching Chrome with `npx puppeteer browsers install chrome`.
 
-## Development Setup
-
-1.  **Install Dependencies**: Run `npm install` to install the required packages.
-2.  **Set API Key**: Create a `.env` file in the root of the project and add your Google Gemini API key as `GEMINI_API_KEY=your_api_key_here`.
-3.  **Run the Application**: Execute `npx fauxmium` in the terminal. The application can be configured with command-line options for port, hostname, and AI models.
-
-## Technical Constraints
-
-- **No CSS or JavaScript Generation**: The current implementation only generates HTML and images. It does not support the generation of external CSS or JavaScript files.
-- **Stateless Navigations**: Each page is generated independently. There is no memory or state preserved between navigations.
-- **Image Generation Context**: The image generation process currently lacks the context of where the image will be placed on the page.
+The HTTP proxy is loopback-only through the CLI and uses a private launch token. API keys remain server-side. Requests have deadlines; media is bounded to 64 MiB per result/cache and concurrent work is limited. These safeguards do not cancel provider-side charges or make Chrome a complete security sandbox.

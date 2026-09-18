@@ -1,166 +1,131 @@
-import http from "http";
-import { GoogleGenAI } from "@google/genai";
+import http from "node:http";
+import { once } from "node:events";
 import { streamCodeBlocks } from "./lib/streamCodeBlocks.js";
 import { generatePrompt } from "./lib/prompts.js";
 import { costCalculator } from "./lib/costCalculator.js";
+import { mediaCache } from "./lib/mediaCache.js";
 
-/*
- * Utility to stream code blocks from a text stream.
- * This is useful when you want to extract code blocks from a markdown-like stream.
- *
- * responseGenerator is a generator function that takes a chunk and yields processed chunks so that they can be rendered
- */
-async function* processChunks(processors, responseGenerator, chunkStream) {
-  for await (const chunk of chunkStream) {
-    for (const processor of processors) {
-      await processor(chunk);
-    }
-
-    yield* responseGenerator(chunk);
-  }
-
-  // Flush.
-  for (const processor of processors) {
-    await processor({ END: true });
-  }
-  yield* responseGenerator({ END: true });
+function fail(statusCode, message) {
+  throw Object.assign(new Error(message), { statusCode });
 }
 
-export function startServer(
-  hostname,
-  port,
-  API_KEY,
-  textGenerationModel,
-  imageGenerationModel
-) {
-  const ai = new GoogleGenAI({ apiKey: API_KEY });
+function sendMedia(req, res, { body, mimeType }) {
+  res.setHeader("Content-Type", mimeType);
+  res.setHeader("Cache-Control", "private, max-age=3600");
+  res.setHeader("Accept-Ranges", "bytes");
+  let start = 0;
+  let end = body.length - 1;
+  if (req.headers.range) {
+    const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range);
+    if (range && (range[1] || range[2])) {
+      start = range[1] ? Number(range[1]) : Math.max(0, body.length - Number(range[2]));
+      end = range[1] && range[2] ? Math.min(Number(range[2]), end) : end;
+    } else start = -1;
+    if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < 0 || start > end || start >= body.length) {
+      res.setHeader("Content-Range", `bytes */${body.length}`);
+      fail(416, "Unsatisfiable byte range");
+    }
+    res.statusCode = 206;
+    res.setHeader("Content-Range", `bytes ${start}-${end}/${body.length}`);
+  }
+  res.setHeader("Content-Length", end - start + 1);
+  res.end(body.subarray(start, end + 1));
+}
 
+export async function startServer({
+  hostname = "127.0.0.1", port = 3001, token, models, generators,
+  timeoutMs = 120000, videoTimeoutMs = 600000,
+}) {
+  if (!token) throw new Error("A private proxy token is required");
+  const media = mediaCache();
+  let activePages = 0;
   const server = http.createServer(async (req, res) => {
-    res.statusCode = 200;
-    res.setHeader("Access-Control-Allow-Origin", "*");
-
-    const url = new URL(req.url, `http://${req.headers.host}`);
-
-    if (url.pathname === "/html") {
-      let contentType = "text/html";
-      res.setHeader("Content-Type", contentType);
-      const requestUrl = url.searchParams.get("url");
-      const requestType = url.searchParams.get("type");
-      const requestHeaders = url.searchParams.get("headers");
-      console.log(`Server generating content for: ${requestUrl}`);
-      try {
-        // We load the prompt from disk and interpolate values so that we can change it without restarting the server.
+    const controller = new AbortController();
+    res.once("close", () => controller.abort());
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Cache-Control", "no-store");
+    let pageSlot = false;
+    let signal;
+    let kind;
+    try {
+      if (req.headers.authorization !== `Bearer ${token}`) fail(403, "Forbidden");
+      if (req.method !== "GET") {
+        res.setHeader("Allow", "GET");
+        fail(405, "Method not allowed");
+      }
+      const url = new URL(req.url, "http://localhost");
+      kind = { "/html": "text", "/image": "image", "/video": "video" }[url.pathname];
+      if (!kind || !models[kind]) fail(404, "Generation route unavailable");
+      const target = url.searchParams.get("url");
+      let requestUrl;
+      try { requestUrl = new URL(target); } catch { fail(400, "A valid url parameter is required"); }
+      if (!/^https?:$/.test(requestUrl.protocol) || requestUrl.username || requestUrl.password || target.length > 8192) {
+        fail(400, "Use an HTTP(S) URL without embedded credentials (maximum 8192 characters)");
+      }
+      requestUrl.hash = "";
+      signal = AbortSignal.any([controller.signal, AbortSignal.timeout(kind === "video" ? videoTimeoutMs : timeoutMs)]);
+      if (kind === "text") {
+        if (activePages >= 4) fail(429, "Too many page generations; try again shortly");
+        activePages++;
+        pageSlot = true;
+        res.setHeader("Content-Type", "text/html; charset=utf-8");
+        res.setHeader("Referrer-Policy", "no-referrer");
+        res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()");
+        res.setHeader("Content-Security-Policy", "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src https: http: data: blob:; media-src https: http: data: blob:; form-action https: http:; base-uri 'none'; sandbox allow-scripts allow-forms allow-same-origin");
         const prompt = await generatePrompt("html", {
-          requestUrl,
-          requestType,
-          requestHeaders,
+          requestUrl: requestUrl.href,
+          language: (url.searchParams.get("language") || "en").slice(0, 128),
+          imageInstructions: models.image ? "Use descriptive image URLs as described below. Lazy-load offscreen images; do not lazy-load the main hero image." : "Image generation is disabled. Use CSS decoration instead of remote images.",
+          videoInstructions: models.video ? "When relevant, include at most one <video controls preload=\"none\" width=\"640\" height=\"360\"> with an HTTPS .mp4 src and URL-encoded description query parameter. Do not autoplay. Explain that playback generates a short AI clip and may take several minutes." : "Video generation is disabled. Do not include video or audio sources.",
         });
-
-        const response = await ai.models.generateContentStream({
-          model: textGenerationModel,
-          contents: prompt,
-        });
-
+        const extract = streamCodeBlocks("html");
         const calc = costCalculator();
-
-        const outputStream = processChunks(
-          [
-            (chunk) => {
-              console.log("Processing chunk:", JSON.stringify(chunk));
-            },
-            calc,
-          ],
-          streamCodeBlocks("html"),
-          response
-        );
-
-        for await (const codeChunk of outputStream) {
-          res.write(codeChunk);
+        let bytes = 0;
+        for await (const chunk of generators.text(prompt, signal)) {
+          signal.throwIfAborted();
+          calc(chunk);
+          for await (const output of extract(chunk)) {
+            bytes += Buffer.byteLength(output);
+            if (!res.write(output)) await once(res, "drain", { signal });
+          }
         }
-
+        for await (const output of extract({ END: true })) {
+          bytes += Buffer.byteLength(output);
+          if (!res.write(output)) await once(res, "drain", { signal });
+        }
+        if (!bytes) throw new Error("The model returned no HTML");
+        calc({ END: true });
         res.end();
-      } catch (error) {
-        console.error(`Failed to generate content for ${requestUrl}:`, error);
-        res.end(
-          `<html><body><h1>Error</h1><p>Failed to generate content for ${requestUrl}</p><pre>${error.message}</pre></body></html>`
-        );
+      } else {
+        const asset = await media.get(`${kind}:${requestUrl.href}`, async (sharedSignal) => {
+          const prompt = await generatePrompt(kind, {
+            description: requestUrl.searchParams.get("description") || requestUrl.href,
+          });
+          const deadline = AbortSignal.any([sharedSignal, AbortSignal.timeout(kind === "video" ? videoTimeoutMs : timeoutMs)]);
+          return generators[kind](prompt, deadline);
+        }, signal);
+        sendMedia(req, res, asset);
       }
-    } else if (url.pathname === "/image") {
-      const requestUrl = url.searchParams.get("url");
-      const newUrl = new URL(requestUrl);
-      const description = newUrl.searchParams.get("description");
-
-      let contentType = "image/png";
-      res.setHeader("Content-Type", contentType);
-
-      console.log(
-        `Image request for URL: ${requestUrl} with description: ${description}`
-      );
-      console.log(`Server generating image for: ${requestUrl}`);
-      try {
-        const prompt = await generatePrompt("image", {
-          description: description || requestUrl,
-        });
-
-        const response = await ai.models.generateContent({
-          model: imageGenerationModel,
-          contents: prompt,
-          config: {
-            personGeneration: "allow_adult",
-            responseModalities: ["IMAGE"],
-          },
-        });
-
-        if (
-          response.candidates.length === 0 ||
-          !response.candidates[0].content
-        ) {
-          console.log("Prompt feedback:", response);
-
-          throw new Error("No candidates in AI response");
-        }
-
-        const aiImageResponse = response.candidates[0].content.parts.find(
-          (part) => "inlineData" in part
-        );
-
-        // Check if we have inline data (base64 image)
-        if (!aiImageResponse.inlineData || !aiImageResponse.inlineData.data) {
-          console.log(response.candidates[0].content);
-          throw new Error("No image data in AI response");
-        }
-
-        // Convert base64 to binary data
-        const base64Data = aiImageResponse.inlineData.data;
-        const mimeType = aiImageResponse.inlineData.mimeType || "image/png";
-
-        // Decode base64 to binary
-        const binaryData = Uint8Array.from(atob(base64Data), (c) =>
-          c.charCodeAt(0)
-        );
-
-        // Return binary data with proper content type
-        res.setHeader("Content-Type", mimeType);
-        res.setHeader("Content-Length", binaryData.length.toString());
-        res.end(binaryData);
-      } catch (e) {
-        console.error(`Failed to generate image for ${requestUrl}:`);
-        console.error("error name: ", e.name);
-        console.error("error message: ", e.message);
-        console.error("error status: ", e.status);
-        // Return a placeholder image or error message
-        res.statusCode = 500;
-        res.setHeader("Content-Type", "text/plain");
-        res.end(`Error generating image: ${e.message}`);
+    } catch (error) {
+      if (controller.signal.aborted) return;
+      const status = error.statusCode || (signal?.reason?.name === "TimeoutError" ? 504 : 502);
+      // Do not log URLs, request headers, generated content or raw SDK errors.
+      const provider = models[kind]?.provider || "proxy";
+      const upstream = Number.isInteger(error.status) ? `, upstream HTTP ${error.status}` : "";
+      console.error(`Request failed: ${provider}/${kind || "request"} (${status}${upstream})`);
+      if (res.headersSent) res.destroy(); // A partial generation must not look complete.
+      else {
+        res.statusCode = status;
+        res.setHeader("Content-Type", "text/plain; charset=utf-8");
+        res.setHeader("Cache-Control", "no-store");
+        res.end(error.statusCode ? error.message : status === 504 ? "Generation timed out" : "Generation failed. Check provider credentials, quota and model availability.");
       }
-    } else {
-      res.statusCode = 404;
-      res.setHeader("Content-Type", "text/plain");
-      res.end("Not Found");
+    } finally {
+      if (pageSlot) activePages--;
     }
   });
-
-  server.listen(port, hostname, () => {
-    console.log(`Server running at http://${hostname}:${port}/`);
-  });
+  server.once("close", () => media.close());
+  server.listen(port, hostname);
+  await once(server, "listening");
+  return server;
 }

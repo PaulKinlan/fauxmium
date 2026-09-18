@@ -2,18 +2,20 @@ Create the HTML for a web page that would be served at the URL: ###requestUrl###
 
 Relevant details about the request:
 - URL: ###requestUrl###
-- Resource Type: ###requestType###
-- Headers: ###requestHeaders###
+- Preferred language: ###language###
+- Image policy: ###imageInstructions###
+- Video policy: ###videoInstructions###
 
 Response requirements:
-- The HTML is well-structured, accessible, responsive and includes modern web design practices.
+- The HTML is well-structured, accessible and responsive, with a language attribute, UTF-8 charset and viewport meta tag. Use labelled form controls and keyboard-accessible interactions.
 - Use a design that looks like the original site at that URL, for example use the brand colors.
-- Use the Headers to determine what capabilities that you can render (such as HTML, CSS and JavaScript functionality)
-- Image src urls must be highly descriptive by encoding the alt text as the URL.Alway include the width and height on the element and on the URL. e.g., <img src="https://example.com/images/beautiful-sunset-over-north-wales.jpg?description=beautiful+sunset+over+north+wales&height=800&width=600" alt="beautiful sunset over north wales" width="800" height="600">
+- The browser supports modern HTML, CSS and JavaScript. External scripts, stylesheets, frames, workers and network APIs are blocked; all behavior must be self-contained.
+- This is a fictitious simulation. Do not ask for passwords, payments or personal information. Add a visible notice that the page and its content are AI-generated.
+- Image src urls must be highly descriptive by encoding the alt text as the URL. Always include the width and height on the element and on the URL. e.g., <img src="https://example.com/images/beautiful-sunset-over-north-wales.jpg?description=beautiful+sunset+over+north+wales&height=800&width=600" alt="beautiful sunset over north wales" width="800" height="600">
 - Prefer that links aren't # instead are full paths.
 - All links MUST be https://
 - Include a <form> when it makes sense, but make the METHOD=GET so that an action and navigation can be performed.
 - Links must not include target="_blank" or similar attributes.
 - Include CSS styles within a <style> tag in the <head> section.
 - Include JavaScript within a <script> tag in the <head> section.
-- Only return the HTML content (inside a code fence) without any additional explanations
+- Return one complete HTML document, without Markdown fences or explanations.

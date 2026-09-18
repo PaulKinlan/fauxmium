@@ -1,96 +1,69 @@
-import fs from "fs/promises";
-import path from "path";
+import fs from "node:fs/promises";
 import puppeteer from "puppeteer";
-import { fileURLToPath } from "url";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-function startBrowser(hostname, port, devtools) {
-  // Main function to launch Puppeteer and set up interception
-  (async () => {
-    const browser = await puppeteer.launch({
-      headless: false,
-      defaultViewport: null,
-      devtools,
-    });
-
-    browser.on("targetcreated", async (target) => {
-      if (target.type() === "page") {
-        const newPage = await target.page();
-        await setupRequestInterception(newPage);
-      }
-    });
-
-    const pages = await browser.pages();
-
-    const warningHtml = await fs.readFile(
-      path.join(__dirname, "pages", "warning.html"),
-      "utf8"
-    );
-
-    for (const page of pages) {
-      await setupRequestInterception(page);
-
-      // Before the user starts to use the page, set up a warning to that they know it's not a real browser.
-      page.setContent(warningHtml);
-    }
-  })();
+export async function startBrowser({ hostname, port, token, models, devtools = false, headless = false }) {
+  const browser = await puppeteer.launch({ headless, defaultViewport: null, devtools });
+  const configured = new WeakSet();
+  const host = hostname.includes(":") ? `[${hostname}]` : hostname;
+  const proxy = `http://${host}:${port}`;
 
   async function setupRequestInterception(page) {
-    // Enable request interception
-    page.setDefaultNavigationTimeout(0);
-    await page.setRequestInterception(true);
-
-    // Listen for 'request' events
+    if (!page || configured.has(page)) return;
+    configured.add(page);
+    page.setDefaultNavigationTimeout(180000);
+    await page.setBypassServiceWorker(true);
     page.on("request", async (request) => {
-      // Check if the request URL matches a specific pattern
-      const resourceType = request.resourceType();
-      const url = request.url();
-      const method = request.method();
-      const headers = request.headers();
-
-      // Waiting on https://chromium-review.googlesource.com/c/chromium/src/+/6945075 - Thank you Andrey
-      const newHeaders = { ...headers, Referer: "" };
-
-      if (method !== "GET") {
-        await request.respond("");
-        return;
+      try {
+        if (request.isInterceptResolutionHandled()) return;
+        const url = new URL(request.url());
+        const type = request.resourceType();
+        if (["data:", "blob:"].includes(url.protocol) && ["image", "media"].includes(type)) {
+          await request.continue();
+          return;
+        }
+        const route = request.isNavigationRequest() ? "html"
+          : type === "image" && models.image ? "image"
+          : type === "media" && models.video && /\.(mp4|webm)$/i.test(url.pathname) ? "video" : null;
+        if (request.method() !== "GET" || !/^https?:$/.test(url.protocol) || !route) {
+          await request.abort("blockedbyclient");
+          return;
+        }
+        const headers = request.headers();
+        const params = new URLSearchParams({ url: url.href });
+        if (route === "html" && headers["accept-language"]) params.set("language", headers["accept-language"]);
+        // Only the private transport token and byte range reach the local proxy.
+        // Cookies, authorization, referrers and other site headers never reach a model.
+        await request.continue({
+          url: `${proxy}/${route}?${params}`,
+          headers: {
+            authorization: `Bearer ${token}`,
+            referer: "", // Clear the original origin during URL rewriting.
+            ...(route !== "html" && headers.range ? { range: headers.range } : {}),
+          },
+        });
+      } catch {
+        if (!request.isInterceptResolutionHandled()) await request.abort().catch(() => {});
       }
-
-      if (!request.isNavigationRequest() && resourceType !== "image") {
-        await request.respond("");
-        return;
-      }
-
-      let proxyUrl = "";
-
-      if (request.isNavigationRequest()) {
-        proxyUrl = `http://${hostname}:${port}/html?url=${encodeURIComponent(
-          url
-        )}&type=${resourceType}&headers=${encodeURIComponent(
-          JSON.stringify(headers)
-        )}`;
-      } else if (resourceType === "image") {
-        proxyUrl = `http://${hostname}:${port}/image?url=${encodeURIComponent(
-          url
-        )}&headers=${encodeURIComponent(JSON.stringify(headers))}`;
-      }
-
-      console.log(
-        `Redirecting ${resourceType} request from ${url} to ${proxyUrl}`
-      );
-
-      console.log("BEFORE", request.interceptResolutionState());
-
-      await request.continue({
-        url: proxyUrl,
-        headers: newHeaders,
-      });
-
-      console.log("AFTER", request.interceptResolutionState());
     });
+    await page.setRequestInterception(true);
+  }
+
+  try {
+    browser.on("targetcreated", (target) => {
+      if (target.type() !== "page") return;
+      target.page().then(setupRequestInterception).catch(() => {
+        console.error("Could not configure a new tab; closing it");
+        target.page().then((page) => page?.close()).catch(() => {});
+      });
+    });
+    const warningHtml = await fs.readFile(new URL("./pages/warning.html", import.meta.url), "utf8");
+    for (const page of await browser.pages()) {
+      await setupRequestInterception(page);
+      await page.setContent(warningHtml);
+    }
+    return browser;
+  } catch (error) {
+    await browser.close();
+    throw error;
   }
 }
-
-export { startBrowser };

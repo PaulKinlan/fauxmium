@@ -1,30 +1,11 @@
-# System Patterns
+# System patterns
 
-This document describes the system architecture, key technical decisions, design patterns, and component relationships for the Fauxmium project.
+`index.js` resolves model selections and validates the necessary provider keys, starts the authenticated local server, then awaits Chrome launch. It closes resources on startup failure, browser disconnect and termination signals.
 
-## Architecture Overview
+`browser.js` rewrites HTTP(S) navigation, image and enabled video requests to the private proxy. Only the proxy token, byte range and preferred language are forwarded; site cookies and authorization are discarded. Generated pages allow inline styles/scripts but block external scripts, frames, workers and network APIs through CSP. This is not a complete Chromium network sandbox.
 
-The Fauxmium application is composed of three main components:
+`server.js` validates requests and generates prompts. Text is normalized into `{text, usageMetadata}` chunks by `lib/generation.js`, extracted as raw/fenced HTML and streamed with backpressure. HTTP connection closure aborts upstream work. Media generation shares in-flight jobs through `lib/mediaCache.js`; completed binary results are byte-bounded and support range requests.
 
-1.  **Browser Controller (`browser.js`)**: Launches and manages a Puppeteer instance of Chrome. It is responsible for intercepting all navigation and image requests.
-2.  **Proxy Server (`server.js`)**: An HTTP server that receives the intercepted requests from the browser. It communicates with the Google Gemini AI to generate content.
-3.  **Main Entry Point (`index.js`)**: Initializes the application, parses command-line arguments, and starts both the browser controller and the proxy server.
+`lib/models.js` owns provider capabilities, API-key names and a dated suggested catalog. The Google SDK handles Interactions and Veo. Other providers use native `fetch`; OpenAI uses Responses, Claude uses Messages, and Grok/DeepSeek/Mistral use compatible chat completions. `lib/sse.js` handles HTTP event framing.
 
-The general flow is as follows:
-
-1. The user navigates to a URL in the Fauxmium browser.
-2. The browser controller intercepts the request and redirects it to the local proxy server.
-3. The proxy server generates a prompt based on the request URL and sends it to the Gemini AI.
-4. The AI returns a stream of HTML or an image.
-5. The proxy server streams the response back to the browser, which then renders the content.
-
-## Key Technical Decisions
-
-- **Puppeteer for Browser Control**: Puppeteer was chosen for its robust API and powerful request interception capabilities, which are central to the project's architecture.
-- **Node.js for the Proxy Server**: A Node.js HTTP server provides a lightweight and efficient way to handle the intercepted requests and manage the communication with the AI service.
-- **`@google/genai` for AI Interaction**: This library simplifies the process of authenticating and interacting with the Google Gemini API.
-
-## Design Patterns
-
-- **Proxy Pattern**: The local server acts as a proxy, intercepting requests intended for the web and providing a different response (in this case, AI-generated content).
-- **Singleton Pattern**: The `browser.js` and `server.js` modules effectively act as singletons, with a single instance of the browser and server running for the duration of the application's lifecycle.
+No framework, build step or database. Prompts remain editable files; cached media is cleared by restarting. Future structure changes are documented in `docs/UPGRADE-PLAN.md`, not scaffolded into the runtime.
