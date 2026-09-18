@@ -82,7 +82,8 @@ pre-existing defect is reported rather than fixed there: the image choices rende
 5. **Hardening, in risk order** (measured differences between the branch and upstream, not generic advice):
    - proxy auth + drop `Access-Control-Allow-Origin: *` (`server/index.js` sets the wildcard today);
    - CSP / Referrer-Policy / Permissions-Policy headers (upstream sets none);
-   - abort/signal wiring so cancellation and timeouts stop upstream work;
+   - ~~abort/signal wiring~~ **done on main (`e7d69cf`)**: the adapter threads an `abortSignal` and the server
+     aborts it on client disconnect, with provider-side socket-close evidence; recorded job IDs remain open;
    - secret filtering in page prompts (the branch strips cookie/auth/referrer values; upstream forwards context);
    - media cache + byte-range reuse (`lib/imageCache.js` exists; ranges do not);
    - a spend ceiling, a trusted first-video confirmation, and recorded provider job IDs.

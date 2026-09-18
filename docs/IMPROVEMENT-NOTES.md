@@ -63,18 +63,33 @@ Two price facts worth keeping in view: Google's `gemini-3.8-flash` rate ($0.75/$
 through 2026-12-31 and doubles on 2027-01-01**, and DeepSeek has off-peak/peak tiers that make a fixed default
 look cheaper than it is.
 
-## 3. The risk cluster: visible-but-uncapped cost + no abort + an open proxy
+## 3. The risk cluster — one of the three is now closed
 
-These three compound, which is why they should be read together rather than as three separate items:
+The state this section described was: cost **measured but never capped**, **no abort signal**, and an **open
+proxy**. They compound, and reading them together is what made the case for fixing the smallest one first.
 
-1. cost is **measured** but never **capped** (above);
-2. `lib/aiAdapter.js` passes **no abort signal**, so a page that has started a billable job has no lever to stop
-   it — navigation, timeout and shutdown all let the provider keep generating and billing;
-3. the proxy is **open to any local page**: `server/index.js` sets `Access-Control-Allow-Origin: *` and requires
-   no token, so any page that can reach `127.0.0.1:3001` can drive generation on your key.
+**Closed (2026-09-18, `e7d69cf` on main): the abort path.** `lib/aiAdapter.js` now takes an `abortSignal` and
+passes it to every SDK call, and `server/index.js` aborts it when the response socket closes before finishing.
+The evidence is provider-side, not loop-side: a mock provider records whether its socket was closed before the
+response completed, and the tests cover text, image and video plus a control case (no abort ⇒ no close) and an
+end-to-end case where a real HTTP client disconnects mid-stream. Making the video case real also exposed that
+`makeVideoModel` resolved the Veo id through the **language**-model factory — the request went to
+`:generateContent` instead of `:predictLongRunning`, so video could never have worked; that is fixed and pinned
+by the endpoint assertion. And a cancelled stream surfaced a latent crash: the SDK's `usage` promise rejects on
+abort with nothing awaiting it, which is an **unhandled rejection** — the adapter now handles it, so wiring the
+abort could not turn a billing leak into a dead server.
 
-Together: an unbounded, unstoppable, locally-triggerable spending path. Individually each is a small fix; the
-combination is the reason the ceiling belongs near the top of the list rather than at the bottom.
+**Still open — these are product decisions, deliberately not taken here:**
+
+1. cost is **measured** but never **capped**: no ceiling, budget, confirmation or alert;
+2. `processVideo` records **no provider job IDs**, so a job that continued provider-side after a local abort or
+   timeout leaves no trace of what may still be billed (the abort stops *our* request; it cannot cancel a Veo
+   operation, and nothing records the operation name);
+3. the proxy is **open to any local page**: `Access-Control-Allow-Origin: *` and no token, so any page that can
+   reach `127.0.0.1:3001` can drive generation on your key.
+
+Cancellation narrows the exposure — a page that goes away no longer keeps generating — but the ceiling, the job
+IDs and the token remain the controls that bound what a *live* page can spend.
 
 ## 4. Other measured gaps (upstream, today)
 
@@ -96,7 +111,7 @@ combination is the reason the ceiling belongs near the top of the list rather th
 | 1 | Registry refresh (`config/providers.js` + cost fallbacks + README examples) — **done on `feat/registry-refresh`** | Self-contained, user-visible, and it fixed two silent cost-accounting bugs on the way |
 | 2 | A test seam in `lib/aiAdapter.js` (or configurable base URLs) | Enables every other item to be pinned |
 | 3 | Proxy auth + drop the CORS wildcard; CSP/Referrer-Policy/Permissions-Policy | Cheap, closes a local-page attack and containment gap |
-| 4 | Abort signal wiring + recorded provider job IDs + no auto-retry of billable submissions | Stops paying for work nobody is waiting for |
+| 4 | ~~Abort signal wiring~~ **done (`e7d69cf`)** + recorded provider job IDs + no auto-retry of billable submissions | Stops paying for work nobody is waiting for; the abort is in, the job IDs are not |
 | 5 | A session spend ceiling and a trusted confirmation before the first video | One clip dominates a session's cost (see §2) |
 | 6 | Port the branch's tests/hardening per the port plan | Coverage arrives with the behaviours it describes |
 
