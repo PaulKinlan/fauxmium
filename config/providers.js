@@ -1,6 +1,17 @@
 /**
  * Centralized provider configuration
- * Each provider defines its models, defaults, and API key mapping
+ * Each provider defines its models, defaults, and API key mapping.
+ *
+ * Model ids re-verified against first-party provider documentation on
+ * 2026-09-18. NOTE: yargs ENFORCES these lists (cli/options.js passes them as
+ * `choices` for --model / --image-model / --video-model), so this file is the
+ * allowlist a user can actually select from — a model missing here is not
+ * selectable, and one listed here must exist upstream.
+ *   Google:    https://ai.google.dev/gemini-api/docs/models
+ *   OpenAI:    https://developers.openai.com/api/docs/models
+ *   Anthropic: https://platform.claude.com/docs/en/models/overview
+ * Groq hosts third-party models and was NOT re-verified in that pass; check
+ * https://console.groq.com/docs/models before changing its list.
  */
 
 export const PROVIDERS = {
@@ -9,22 +20,24 @@ export const PROVIDERS = {
     normalizedName: "google",
     envKeys: ["GEMINI_API_KEY", "GOOGLE_API_KEY"],
     text: {
-      defaultModel: "gemini-3.5-flash",
+      defaultModel: "gemini-3.8-flash",
       choices: [
-        "gemini-flash-lite-latest",
-        "gemini-flash-latest",
-        "gemini-2.5-pro",
-        "gemini-2.5-flash",
-        "gemini-3-pro-preview",
-        "gemini-3-flash-preview",
-        "gemini-3.1-pro",
-        "gemini-3.1-flash-lite",
+        "gemini-3.8-flash",
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
         "gemini-3.5-flash",
+        "gemini-3.5-flash-lite",
+        "gemini-3.1-flash-lite",
+        "gemini-3.1-pro-preview",
       ],
     },
     image: {
-      defaultModel: "gemini-2.5-flash-image",
-      choices: ["gemini-2.5-flash-image"],
+      defaultModel: "gemini-3.1-flash-image",
+      choices: [
+        "gemini-3.1-flash-image",
+        "gemini-3.1-flash-lite-image",
+        "gemini-3-pro-image",
+      ],
       supported: true,
     },
     video: {
@@ -43,21 +56,19 @@ export const PROVIDERS = {
     normalizedName: "openai",
     envKeys: ["OPENAI_API_KEY"],
     text: {
-      defaultModel: "gpt-5.5-instant",
+      // luna is the cost-sensitive/high-volume tier (the successor role to
+      // 5.5-instant): $0.20/$1.20 per 1M tokens.
+      defaultModel: "gpt-5.6-luna",
       choices: [
-        "gpt-4-mini",
-        "gpt-5-nano",
-        "gpt-5-pro",
-        "gpt-5.4-nano",
-        "gpt-5.4-mini",
-        "gpt-5.4",
-        "gpt-5.5-instant",
-        "gpt-5.5",
+        "gpt-5.6-luna",
+        "gpt-5.6-terra",
+        "gpt-5.6-sol",
+        "gpt-6-astra",
       ],
     },
     image: {
-      defaultModel: "dall-e-3",
-      choices: ["dall-e-3", "dall-e-2"],
+      defaultModel: "gpt-image-2.5-flare",
+      choices: ["gpt-image-2.5-flare", "gpt-image-2.5-sunburst"],
       supported: true,
     },
     video: {
@@ -69,14 +80,12 @@ export const PROVIDERS = {
     normalizedName: "anthropic",
     envKeys: ["ANTHROPIC_API_KEY"],
     text: {
-      defaultModel: "claude-sonnet-4-6",
+      defaultModel: "claude-sonnet-5",
       choices: [
-        "claude-sonnet-4-0",
-        "claude-3-7-sonnet-latest",
-        "claude-3-opus-latest",
         "claude-haiku-4-5",
-        "claude-sonnet-4-6",
-        "claude-opus-4-7",
+        "claude-sonnet-5",
+        "claude-opus-5",
+        "claude-fable-5-1",
       ],
     },
     image: {
