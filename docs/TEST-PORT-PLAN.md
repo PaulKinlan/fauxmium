@@ -63,6 +63,15 @@ polling. They get rewritten against `aiAdapter` once it has a seam, or dropped w
 
 ## 2. Proposed sequence (each step its own reviewed change)
 
+**Step 1 (implemented, `feat/registry-refresh` @ 7b8895b):** the registry refresh, the cost fallbacks, the README
+ids, and a real `npm test` (the repo's was a stub that exited 1) pinning the coupling. Implementing it found two
+upstream bugs beyond the staleness — both fixed in that branch, both in this same silent-failure family:
+the floating `-latest` aliases were loaded under the alias key and priced under the canonical key (always 0), and
+the usage mapping read `usage.totalTokens` but assigned `usage.outputTokens` to the total, so the derived output
+count was **negative whenever input > output** (the usual page case) and NaN when only totals arrived. A cosmetic
+pre-existing defect is reported rather than fixed there: the image choices render twice in `gemini images --help`
+(yargs accumulates the list across the provider command and the images subcommand).
+
 1. **Registry refresh** — `config/providers.js` + `lib/costCalculator.js` fallbacks to the table in §0, with the
    evidence links in a comment. Self-contained, and it is Paul's actual ask. *No behaviour change beyond model ids.*
 2. **Test seam** — an explicit, minimal injection point in `lib/aiAdapter.js` (or configurable base URLs) so a
@@ -83,6 +92,8 @@ polling. They get rewritten against `aiAdapter` once it has a seam, or dropped w
 
 - Merging the branch, or reviving its native adapter layer: upstream's Vercel AI SDK is the model layer, and two
   model layers is the over-reach this classification exists to avoid. The branch stays as the comparison record.
-- Turning `config/providers.js` into an allowlist: provider-qualified ids should keep working for models newer
-  than the catalog.
+- Turning `config/providers.js` into an allowlist — it **already is one**: `cli/options.js` passes the choices to
+  yargs, so an id that is not listed cannot be selected at all (measured). Consequence to keep in mind when the
+  list changes: replacing a stale id is also *removing* it from the CLI. A `--model` escape hatch for
+  provider-qualified ids newer than the list is a separate design question, deliberately not bundled here.
 - Any change to `main` before this plan is reviewed.

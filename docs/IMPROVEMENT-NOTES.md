@@ -4,7 +4,7 @@
 source or a published provider price; nothing was verified live because no paid calls were made. Plan for the
 port of the earlier branch's work: [`TEST-PORT-PLAN.md`](TEST-PORT-PLAN.md).
 
-## 1. The model registry is stale — this is the first thing to change
+## 1. The model registry is stale — this is the first thing to change (fixed on `feat/registry-refresh`)
 
 `config/providers.js` is the live registry, and its choices lag the providers by a generation or two:
 
@@ -35,9 +35,18 @@ Good news first, because it narrows the recommendation: cost tracking is real he
 with `sessionCosts` accumulated in `server/index.js` and exposed at `GET /cost`. So "you cannot see what you
 spend" is not the problem.
 
-The problem is that **nothing acts on it**: there is no ceiling, budget, confirmation or alert anywhere in the
-JS, and `processVideo` logs its work but records **no provider job IDs**, so a clip that is cancelled locally or
-times out during polling can still be billed with nothing afterwards showing it. With published prices and the
+Two caveats before trusting the number, then the real problem.
+
+First, the accounting itself was wrong until the registry refresh landed with it: the usage mapping read
+`usage.totalTokens` but assigned `usage.outputTokens` to the total, so the derived output count was **negative
+whenever input > output** — the usual shape for page generation (long prompt, shorter page) — and `NaN` when a
+provider reported only totals. The floating `-latest` aliases additionally priced at 0 because they were loaded
+under the alias key and looked up under the canonical one. Both are fixed on `feat/registry-refresh`; treat any
+cost figure recorded before it as unreliable.
+
+Second, the problem is that **nothing acts on the number**: there is no ceiling, budget, confirmation or alert
+anywhere in the JS, and `processVideo` logs its work but records **no provider job IDs**, so a clip that is
+cancelled locally or times out during polling can still be billed with nothing afterwards showing it. With published prices and the
 request shapes this code produces, the asymmetry is stark:
 
 | Artifact | Cheap end | Expensive end |
@@ -54,7 +63,20 @@ Two price facts worth keeping in view: Google's `gemini-3.8-flash` rate ($0.75/$
 through 2026-12-31 and doubles on 2027-01-01**, and DeepSeek has off-peak/peak tiers that make a fixed default
 look cheaper than it is.
 
-## 3. Other measured gaps (upstream, today)
+## 3. The risk cluster: visible-but-uncapped cost + no abort + an open proxy
+
+These three compound, which is why they should be read together rather than as three separate items:
+
+1. cost is **measured** but never **capped** (above);
+2. `lib/aiAdapter.js` passes **no abort signal**, so a page that has started a billable job has no lever to stop
+   it — navigation, timeout and shutdown all let the provider keep generating and billing;
+3. the proxy is **open to any local page**: `server/index.js` sets `Access-Control-Allow-Origin: *` and requires
+   no token, so any page that can reach `127.0.0.1:3001` can drive generation on your key.
+
+Together: an unbounded, unstoppable, locally-triggerable spending path. Individually each is a small fix; the
+combination is the reason the ceiling belongs near the top of the list rather than at the bottom.
+
+## 4. Other measured gaps (upstream, today)
 
 1. **The proxy is open to any local page.** `server/index.js` sets `Access-Control-Allow-Origin: *` and takes no
    token, so any page that can reach `127.0.0.1:3001` can drive generation on your key. (The stale branch added a
@@ -67,24 +89,24 @@ look cheaper than it is.
    pinned to `*`. Every behaviour above is currently unprotected.
 5. **Prompt content is not filtered.** Page context enters prompts; cookie/auth/referrer values should not.
 
-## 4. Recommended order
+## 5. Recommended order
 
 | # | Change | Why first |
 | --- | --- | --- |
-| 1 | Registry refresh (`config/providers.js` + cost fallbacks + README examples) | Self-contained, user-visible, no behaviour change beyond ids |
+| 1 | Registry refresh (`config/providers.js` + cost fallbacks + README examples) — **done on `feat/registry-refresh`** | Self-contained, user-visible, and it fixed two silent cost-accounting bugs on the way |
 | 2 | A test seam in `lib/aiAdapter.js` (or configurable base URLs) | Enables every other item to be pinned |
 | 3 | Proxy auth + drop the CORS wildcard; CSP/Referrer-Policy/Permissions-Policy | Cheap, closes a local-page attack and containment gap |
 | 4 | Abort signal wiring + recorded provider job IDs + no auto-retry of billable submissions | Stops paying for work nobody is waiting for |
 | 5 | A session spend ceiling and a trusted confirmation before the first video | One clip dominates a session's cost (see §2) |
 | 6 | Port the branch's tests/hardening per the port plan | Coverage arrives with the behaviours it describes |
 
-## 5. Not verified (needs a key and a budget)
+## 6. Not verified (needs a key and a budget)
 
 Account entitlements and regional access; output quality; whether the `veo-3.1`/`gpt-image-2.5` ids are enabled
 for a given key; actual billing (cache-hit rates, off-peak tiers, the January 2027 Gemini step); real clip
 decoding and playback.
 
-## 6. First five minutes
+## 7. First five minutes
 
 ```bash
 npm ci
