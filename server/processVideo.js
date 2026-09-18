@@ -3,7 +3,7 @@ import { generateVideo } from "../lib/aiAdapter.js";
 import { costCalculator } from "../lib/costCalculator.js";
 import { waitForCachedImage } from "../lib/imageCache.js";
 
-export async function processVideo(res, url, VideoConfig) {
+export async function processVideo(res, url, VideoConfig, { abortSignal } = {}) {
   const requestUrl = url.searchParams.get("url");
   const newUrl = new URL(requestUrl);
   const description = newUrl.searchParams.get("description");
@@ -52,7 +52,7 @@ export async function processVideo(res, url, VideoConfig) {
     const { mimeType, base64Data } = await generateVideo(
       VideoConfig,
       prompt,
-      posterImageData ? { image: posterImageData } : {}
+      posterImageData ? { image: posterImageData, abortSignal } : { abortSignal }
     );
 
     const binaryData = Buffer.from(base64Data, "base64");
@@ -78,6 +78,11 @@ export async function processVideo(res, url, VideoConfig) {
     );
     res.end(binaryData);
   } catch (e) {
+    if (abortSignal?.aborted === true || e?.name === "AbortError") {
+      console.log(`Video generation cancelled for ${requestUrl} (client disconnected)`);
+      if (!res.writableEnded) res.end();
+      return;
+    }
     console.error(`Failed to generate Video for ${requestUrl}:`);
     console.error("error name: ", e.name);
     console.error("error message: ", e.message);
@@ -89,6 +94,7 @@ export async function processVideo(res, url, VideoConfig) {
       "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=";
     const binaryData = Buffer.from(placeholderBase64, "base64");
 
+    if (res.writableEnded) return;
     res.statusCode = 200;
     res.setHeader("Content-Type", "Video/png");
     res.setHeader("Content-Length", binaryData.length.toString());

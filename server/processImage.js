@@ -3,7 +3,7 @@ import { generateImage } from "../lib/aiAdapter.js";
 import { costCalculator } from "../lib/costCalculator.js";
 import { cacheImage } from "../lib/imageCache.js";
 
-export async function processImage(res, url, imageConfig) {
+export async function processImage(res, url, imageConfig, { abortSignal } = {}) {
   const requestUrl = url.searchParams.get("url");
   const newUrl = new URL(requestUrl);
   const description = newUrl.searchParams.get("description");
@@ -25,7 +25,8 @@ export async function processImage(res, url, imageConfig) {
 
     const { mimeType, base64Data, usage } = await generateImage(
       imageConfig,
-      prompt
+      prompt,
+      { abortSignal }
     );
 
     newUrl.search = ""; // strip any params
@@ -58,6 +59,11 @@ export async function processImage(res, url, imageConfig) {
     res.setHeader("Content-Length", binaryData.length.toString());
     res.end(binaryData);
   } catch (e) {
+    if (abortSignal?.aborted === true || e?.name === "AbortError") {
+      console.log(`Image generation cancelled for ${displayUrl} (client disconnected)`);
+      if (!res.writableEnded) res.end();
+      return;
+    }
     console.error(`Failed to generate image for ${requestUrl}:`);
     console.error("error name: ", e.name);
     console.error("error message: ", e.message);
@@ -69,6 +75,7 @@ export async function processImage(res, url, imageConfig) {
       "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=";
     const binaryData = Buffer.from(placeholderBase64, "base64");
 
+    if (res.writableEnded) return;
     res.statusCode = 200;
     res.setHeader("Content-Type", "image/png");
     res.setHeader("Content-Length", binaryData.length.toString());

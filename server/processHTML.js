@@ -4,7 +4,7 @@ import { streamCodeBlocks } from "../lib/streamCodeBlocks.js";
 import { processChunks } from "../lib/processChunks.js";
 import { streamText } from "../lib/aiAdapter.js";
 
-export async function processHTML(res, url, textConfig) {
+export async function processHTML(res, url, textConfig, { abortSignal } = {}) {
   let contentType = "text/html";
   res.setHeader("Content-Type", contentType);
   const requestUrl = url.searchParams.get("url");
@@ -97,7 +97,7 @@ export async function processHTML(res, url, textConfig) {
       country,
     });
 
-    const response = streamText(textConfig, prompt);
+    const response = streamText(textConfig, prompt, { abortSignal });
 
     const calc = costCalculator(textConfig.model, requestUrl);
 
@@ -113,14 +113,27 @@ export async function processHTML(res, url, textConfig) {
     );
 
     for await (const codeChunk of outputStream) {
+      // The client may have gone mid-stream; stop pulling rather than keep the
+      // provider working for a page nobody will read.
+      if (abortSignal?.aborted) break;
       res.write(codeChunk);
     }
 
-    res.end();
+    if (!res.writableEnded) res.end();
   } catch (error) {
+    const aborted = abortSignal?.aborted === true || error?.name === "AbortError";
+    if (aborted) {
+      // A cancelled generation is neither a success nor a product failure: say
+      // which it was, and do not write an error page to a socket that is gone.
+      console.log(`Generation cancelled for ${requestUrl} (client disconnected)`);
+      if (!res.writableEnded) res.end();
+      return;
+    }
     console.error(`Failed to generate content for ${requestUrl}:`, error);
-    res.end(
-      `<html><body><h1>Error</h1><p>Failed to generate content for ${requestUrl}</p><pre>${error.message}</pre></body></html>`
-    );
+    if (!res.writableEnded) {
+      res.end(
+        `<html><body><h1>Error</h1><p>Failed to generate content for ${requestUrl}</p><pre>${error.message}</pre></body></html>`
+      );
+    }
   }
 }
