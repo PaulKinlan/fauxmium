@@ -22,6 +22,8 @@ import { makeVideoModel } from "../lib/aiAdapter.js";
 import { synthesizeWav } from "../lib/audioSynth.js";
 import { serveMediaBuffer } from "../lib/rangeResponse.js";
 import { FALLBACK_MP4_BUFFER, generatePlaceholderSvg } from "../lib/fallbackMedia.js";
+import { registerPendingImage, getPendingImage } from "../lib/imageCache.js";
+import { syncGeminiModels } from "../lib/modelSync.js";
 import { startServer } from "../server/index.js";
 
 test("Task 1: Declarative models, aliases, and lens configurations", () => {
@@ -31,11 +33,11 @@ test("Task 1: Declarative models, aliases, and lens configurations", () => {
 
   assert.equal(
     resolveModelAlias("gemini-flash-lite-latest"),
-    "gemini-2.5-flash-lite"
+    "gemini-3.5-flash-lite"
   );
   assert.equal(
     resolveModelAlias("gemini-flash-latest"),
-    "gemini-2.5-flash"
+    "gemini-3.8-flash"
   );
 
   assert.ok(BROWSING_LENSES.modern, "Modern lens must exist");
@@ -238,3 +240,36 @@ test("Task 5: Server endpoints (/config, /cost, /cache/clear, /audio, /video wit
     server.close();
   }
 });
+
+test("registerPendingImage handles rejected promise without unhandledRejection", async () => {
+  let unhandled = false;
+  const handler = () => {
+    unhandled = true;
+  };
+  process.on("unhandledRejection", handler);
+
+  try {
+    const errorPromise = Promise.reject(new Error("Test rejection"));
+    registerPendingImage("https://example.com/rejected.png", errorPromise);
+
+    // Also catch on the errorPromise itself so the test doesn't fail from the original promise
+    await errorPromise.catch(() => {});
+
+    // Allow microtasks and ticks to run
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    assert.equal(unhandled, false, "Should not trigger unhandledRejection");
+    assert.equal(
+      getPendingImage("https://example.com/rejected.png"),
+      null,
+      "Pending promise should be cleaned up"
+    );
+  } finally {
+    process.off("unhandledRejection", handler);
+  }
+});
+
+test("syncGeminiModels discovers live models or reads disk cache", async () => {
+  const models = await syncGeminiModels();
+  assert.ok(Array.isArray(models), "syncGeminiModels should return an array of models");
+});
+

@@ -4,6 +4,7 @@ import { costCalculator } from "../lib/costCalculator.js";
 import {
   cacheImage,
   getCachedImage,
+  getPendingImage,
   registerPendingImage,
   normalizeCacheKey,
 } from "../lib/imageCache.js";
@@ -11,6 +12,23 @@ import { generatePlaceholderSvg } from "../lib/fallbackMedia.js";
 
 export async function processImage(res, url, imageConfig) {
   const requestUrl = url.searchParams.get("url") || "";
+
+  // Guard against data: URIs if ever passed to /image
+  if (requestUrl.startsWith("data:")) {
+    const match = requestUrl.match(/^data:([^;,]+)?(;base64)?,(.*)$/);
+    if (match) {
+      const mimeType = match[1] || "image/gif";
+      const isBase64 = Boolean(match[2]);
+      const dataBuf = isBase64
+        ? Buffer.from(match[3], "base64")
+        : Buffer.from(decodeURIComponent(match[3]));
+      res.statusCode = 200;
+      res.setHeader("Content-Type", mimeType);
+      res.setHeader("Content-Length", dataBuf.length.toString());
+      res.end(dataBuf);
+      return;
+    }
+  }
 
   let newUrl;
   try {
@@ -61,24 +79,31 @@ export async function processImage(res, url, imageConfig) {
 
   console.log(`[image] Request for URL: ${displayUrl} with description: ${description}`);
 
-  // 3. Generate Image with in-flight Promise tracking
+  // 3. Generate Image with in-flight Promise deduplication
   try {
-    const prompt = await generatePrompt("image", {
-      description: description || requestUrl,
-      width,
-      height,
-    });
+    let generationPromise = getPendingImage(cacheKey);
+    const isSharedPromise = Boolean(generationPromise);
 
-    const generationPromise = generateImage(imageConfig, prompt);
-    registerPendingImage(cacheKey, generationPromise);
+    if (!generationPromise) {
+      const prompt = await generatePrompt("image", {
+        description: description || requestUrl,
+        width,
+        height,
+      });
+
+      generationPromise = generateImage(imageConfig, prompt);
+      registerPendingImage(cacheKey, generationPromise);
+    }
 
     const { mimeType, base64Data, usage } = await generationPromise;
 
-    // Cache the generated image
-    cacheImage(cacheKey, {
-      imageBytes: base64Data,
-      mimeType,
-    });
+    if (!isSharedPromise) {
+      // Cache the generated image
+      cacheImage(cacheKey, {
+        imageBytes: base64Data,
+        mimeType,
+      });
+    }
 
     const binaryData = Buffer.from(base64Data, "base64");
 

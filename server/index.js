@@ -3,7 +3,7 @@ import { processHTML } from "./processHTML.js";
 import { processImage } from "./processImage.js";
 import { processVideo } from "./processVideo.js";
 import { processAudio } from "./processAudio.js";
-import { sessionCosts, loadCosts, resetSessionCosts } from "../lib/costCalculator.js";
+import { sessionCosts, loadCosts, resetSessionCosts, syncGeminiModels } from "../lib/costCalculator.js";
 import {
   sessionState,
   initSessionState,
@@ -31,6 +31,15 @@ export async function startServer(
   });
 
   const forceSync = Boolean(extraConfig.syncModels);
+
+  if (forceSync) {
+    const syncKey =
+      textConfig?.apiKey ||
+      imageConfig?.apiKey ||
+      videoConfig?.apiKey ||
+      audioConfig?.apiKey;
+    syncGeminiModels({ apiKey: syncKey, forceSync }).catch(() => {});
+  }
 
   // Initialize model costs asynchronously
   try {

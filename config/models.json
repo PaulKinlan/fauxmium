@@ -5,7 +5,7 @@
       "normalizedName": "google",
       "envKeys": ["GEMINI_API_KEY", "GOOGLE_API_KEY"],
       "text": {
-        "defaultModel": "gemini-3.5-flash",
+        "defaultModel": "gemini-3.8-flash",
         "choices": [
           "gemini-flash-lite-latest",
           "gemini-flash-latest",
@@ -15,27 +15,37 @@
           "gemini-3-flash-preview",
           "gemini-3.1-pro",
           "gemini-3.1-flash-lite",
-          "gemini-3.5-flash"
+          "gemini-3.5-flash",
+          "gemini-3.6-flash",
+          "gemini-3.7-flash",
+          "gemini-3.8-flash"
         ]
       },
       "image": {
-        "defaultModel": "gemini-2.5-flash-image",
-        "choices": ["gemini-2.5-flash-image"],
+        "defaultModel": "gemini-3.1-flash-image",
+        "choices": [
+          "gemini-3.1-flash-image",
+          "gemini-3.1-flash-lite-image",
+          "gemini-2.5-flash-image"
+        ],
         "supported": true
       },
       "video": {
-        "defaultModel": "veo-3.1-fast-generate-preview",
+        "defaultModel": "veo-3.1-generate-preview",
         "choices": [
-          "veo-3.1-generate-001",
           "veo-3.1-generate-preview",
-          "veo-3.1-fast-generate-001",
+          "veo-3.1-generate-001",
+          "veo-2.0-generate-001",
           "veo-3.1-fast-generate-preview"
         ],
         "supported": true
       },
       "audio": {
-        "defaultModel": "gemini-2.5-flash",
-        "choices": ["gemini-2.5-flash"],
+        "defaultModel": "gemini-3.8-flash-tts",
+        "choices": [
+          "gemini-3.8-flash-tts",
+          "gemini-2.5-flash"
+        ],
         "supported": true
       }
     },
@@ -44,7 +54,7 @@
       "normalizedName": "openai",
       "envKeys": ["OPENAI_API_KEY"],
       "text": {
-        "defaultModel": "gpt-5.5-instant",
+        "defaultModel": "gpt-5.5",
         "choices": [
           "gpt-4-mini",
           "gpt-5-nano",
@@ -57,16 +67,16 @@
         ]
       },
       "image": {
-        "defaultModel": "dall-e-3",
-        "choices": ["dall-e-3", "dall-e-2"],
+        "defaultModel": "gpt-image-2",
+        "choices": ["gpt-image-2", "dall-e-3", "dall-e-2"],
         "supported": true
       },
       "video": {
         "supported": false
       },
       "audio": {
-        "defaultModel": "tts-1",
-        "choices": ["tts-1", "tts-1-hd"],
+        "defaultModel": "gpt-4o-mini-tts",
+        "choices": ["gpt-4o-mini-tts", "tts-1", "tts-1-hd"],
         "supported": true
       }
     },
@@ -154,19 +164,27 @@
     "audioProvider": "synth"
   },
   "modelAliases": {
-    "gemini-flash-lite-latest": "gemini-2.5-flash-lite",
-    "gemini-flash-latest": "gemini-2.5-flash"
+    "gemini-flash-lite-latest": "gemini-3.5-flash-lite",
+    "gemini-flash-latest": "gemini-3.8-flash",
+    "llama-4-scout": "meta-llama/llama-4-scout-17b-16e-instruct"
   },
   "fallbackPricing": {
+    "gemini-3.8-flash": { "unit": "tokens", "input": 0.75, "output": 3.75 },
+    "gemini-3.7-flash": { "unit": "tokens", "input": 0.75, "output": 3.75 },
+    "gemini-3.6-flash": { "unit": "tokens", "input": 0.75, "output": 3.75 },
     "gemini-3.5-flash": { "unit": "tokens", "input": 1.5, "output": 9.0 },
     "gemini-3-flash-preview": { "unit": "tokens", "input": 1.5, "output": 9.0 },
     "gemini-3.1-pro": { "unit": "tokens", "input": 2.0, "output": 12.0 },
     "gemini-3-pro-preview": { "unit": "tokens", "input": 2.0, "output": 12.0 },
+    "gemini-3.5-flash-lite": { "unit": "tokens", "input": 0.25, "output": 1.5 },
     "gemini-3.1-flash-lite": { "unit": "tokens", "input": 0.25, "output": 1.5 },
     "gemini-2.5-flash": { "unit": "tokens", "input": 0.15, "output": 0.6 },
     "gemini-2.5-pro": { "unit": "tokens", "input": 1.25, "output": 5.0 },
+    "gemini-3.1-flash-image": { "unit": "tokens", "input": 0.3, "output": 30.0 },
+    "gemini-3.1-flash-lite-image": { "unit": "tokens", "input": 0.3, "output": 30.0 },
     "gemini-2.5-flash-image": { "unit": "tokens", "input": 0.3, "output": 30.0 },
     "gemini-2.5-flash-image-preview": { "unit": "tokens", "input": 0.3, "output": 30.0 },
+    "gemini-3.8-flash-tts": { "unit": "tokens", "input": 0.75, "output": 3.75 },
     "gpt-5.5-instant": { "unit": "tokens", "input": 2.5, "output": 10.0 },
     "gpt-5.5": { "unit": "tokens", "input": 3.0, "output": 12.0 },
     "gpt-5.4": { "unit": "tokens", "input": 2.5, "output": 10.0 },
@@ -178,8 +196,10 @@
     "claude-haiku-4-5": { "unit": "tokens", "input": 0.8, "output": 4.0 },
     "llama-3.3-70b-versatile": { "unit": "tokens", "input": 0.59, "output": 0.79 },
     "llama-3.1-8b-instant": { "unit": "tokens", "input": 0.05, "output": 0.08 },
+    "gpt-image-2": { "unit": "per_image", "input": 0.0, "output": 0.04 },
     "dall-e-3": { "unit": "per_image", "input": 0.0, "output": 0.04 },
     "dall-e-2": { "unit": "per_image", "input": 0.0, "output": 0.02 },
+    "gpt-4o-mini-tts": { "unit": "per_1k_chars", "input": 0.0, "output": 0.015 },
     "tts-1": { "unit": "per_1k_chars", "input": 0.0, "output": 0.015 },
     "tts-1-hd": { "unit": "per_1k_chars", "input": 0.0, "output": 0.030 },
     "veo-": { "unit": "per_second", "input": 0.0, "output": 0.40 },

@@ -165,8 +165,14 @@ function startBrowser(hostname, port, devtools) {
 
       const newHeaders = { ...headers, Referer: "" };
 
-      // Allow requests to the local Fauxmium server directly
-      if (url.startsWith(`http://${hostname}:${port}/`)) {
+      // Allow requests to the local Fauxmium server and non-network schemes directly
+      if (
+        url.startsWith(`http://${hostname}:${port}/`) ||
+        url.startsWith("data:") ||
+        url.startsWith("blob:") ||
+        url.startsWith("chrome-extension:") ||
+        url.startsWith("about:")
+      ) {
         await request.continue();
         return;
       }

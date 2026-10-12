@@ -1,1 +1,3 @@
 Create an image that is visually appealing matching the following description: ###description###
+
+If the description references a specific named real person, headshot, or portrait, generate a stylized artistic portrait, professional vector illustration, or avatar representing them rather than attempting photorealistic synthesis.
