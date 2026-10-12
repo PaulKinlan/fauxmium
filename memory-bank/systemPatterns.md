@@ -1,110 +1,80 @@
-# System Patterns
+# System Patterns: Fauxmium Architecture & Design Patterns
 
-This document describes the system architecture, key technical decisions, design patterns, and component relationships for the Fauxmium project. It reflects the current codebase.
+This document details the system architecture, design patterns, data flows, and technical decisions implemented across Fauxmium.
 
 ## Architecture Overview
 
-Fauxmium is composed of these main components:
+```
+                      +---------------------------------------+
+                      |          Chromium Browser             |
+                      |   (Puppeteer + Fauxmium Extension)    |
+                      +-------------------+-------------------+
+                                          |
+                        Interception & Dynamic Navigation
+                                          v
+                      +---------------------------------------+
+                      |         Proxy Server (HTTP)           |
+                      |          server/index.js              |
+                      +---+-----------+-----------+-------+---+
+                          |           |           |       |
+            +-------------+     +-----+-----+     |   +---+-----------+
+            v                   v           v     v   v               v
+      GET /html             GET /image  GET /video  GET /audio   GET & POST /config, /cost
+   (processHTML.js)       (processImage) (processVideo) (processAudio) (sessionState & costCalculator)
+            |                   |           |         |
+            +------------+------+-----+-----+---------+
+                         |            |
+                         v            v
+               +---------------+  +-------------------------+
+               | Vercel AI SDK |  | Procedural Audio Synth  |
+               | (aiAdapter.js)|  |     (audioSynth.js)     |
+               +---------------+  +-------------------------+
+                         |
+      +------------------+------------------+
+      |                  |                  |
+Google Gemini         OpenAI            Anthropic / Groq
+ (3.8 Flash,       (GPT-6 Sol,         (Claude 5.5 Sonnet,
+  Veo 3.1)           DALL-E)              GPT-OSS 120B)
+```
 
-1. Browser Controller (`browser.js`)
+## Core Modules & Responsibilities
 
-   - Launches a visible Chrome via Puppeteer.
-   - Installs the bundled Chrome Extension at runtime and configures it via Chrome DevTools Protocol (CDP) `Extensions.setStorageItems` with `hostname` and `port`.
-   - Intercepts requests on every open page.
-   - Shows a warning page on startup for each page.
+1. **Browser Controller (`browser.js`)**:
+   - Launches headful Chromium via Puppeteer.
+   - Installs `extension/` via CDP `Extensions.setStorageItems` with proxy host & port.
+   - Exposes `__fauxmiumCaptureClick` and `__fauxmiumUpdateColorScheme` to browser runtime.
+   - Injects progress bar, shimmer skeleton styling, and link intent interceptor on `DOMContentLoaded`.
+   - Intercepts requests, forwarding navigation to `/html`, images to `/image`, videos to `/video`, and audio to `/audio`. Handles POST navigation data.
 
-2. Proxy Server (`server/index.js`)
+2. **Proxy Server (`server/index.js`)**:
+   - Router dispatching requests to modular processors:
+     - `server/processHTML.js`: Decomposes routes, inspects media capabilities, fetches site memory & domain state, and streams token-by-token HTML.
+     - `server/processImage.js`: Handles in-flight promise deduplication (`registerPendingImage`), aspect ratio calculation, role inference, and cached image reuse.
+     - `server/processVideo.js`: Waits for companion poster frame generation, calls Veo 3.1, and streams video with HTTP 206 byte-ranges.
+     - `server/processAudio.js`: Parses BPM, mood, and transcripts; routes to OpenAI TTS, Gemini TTS, or zero-latency procedural synth.
 
-   - Minimal HTTP server exposing endpoints:
-     - `GET /html` — streams AI-generated HTML (fenced ```html blocks) back to the browser.
-     - `GET /image` — returns an AI-generated image (binary) or a 1x1 PNG placeholder on failure.
-     - `GET /cost` — returns in-memory session cost data.
-   - Initializes usage-based pricing by loading model rates from Helicone (`loadCosts(model)`).
+3. **Site Memory & Coherence (`lib/siteMemory.js`)**:
+   - `extractAndSaveSiteProfile(pageUrl, htmlContent)`: Extracts brand names, typography, `:root` CSS variables, nav links, and cached `<img>` tags.
+   - `recordLinkContext(ctx)` & `consumeLinkContext(targetUrl)`: Pairs clicked cards, link text, snippet, and `data-context` with the next destination URL.
+   - `updateAndGetDomainState(pageUrl, postData)`: Bounded domain state map tracking search queries, categories, cart items, masked passwords (`********`), and authenticated flags.
+   - `appendNavigationTurn(pageUrl, userPrompt, assistantHtml)` & `getNavigationThread(pageUrl)`: Sliding window of immutable conversation turns.
+   - `clearSiteMemory()`: Flushes all domain memory upon cache flush or active lens switch.
 
-3. Main Entry Point (`index.js`)
+4. **Prompt Prefix Caching Architecture (`lib/prompts.js`)**:
+   - Invariant System Prompt (`prompts/html-system.txt`): Variable-free, >1,800 tokens, 100% static across requests to guarantee 75%–90% prompt cache discounts across Gemini, OpenAI, and Anthropic.
+   - Tiered User Prompt (`prompts/html.txt`):
+     - `[SESSION ENVIRONMENT - STABLE]`: 64px bucketed viewport, normalized language, day-level date.
+     - `[SITE COHERENCE PROFILE]`: Domain state and design tokens.
+     - `[NAVIGATION & LINK INTENT - DYNAMIC]`: Decomposed URL route, media capabilities, referrer, POST data, and link context.
 
-   - CLI entry (`bin`) built with `yargs`.
-   - Parses provider/model/API key options for text and image generation.
-   - Starts the proxy server and then launches the browser controller.
-   - Supports multiple text providers and a Google-only image provider (configurable models).
+5. **Multi-Modal Cost Calculator (`lib/costCalculator.js`)**:
+   - Tracks text input/output/cached tokens, image generations, video durations, and audio characters.
+   - Applies a 75% discount to cached input tokens (`cachedInputTokens`).
 
-4. Chrome Extension (`extension/`)
+6. **Procedural WAV Synthesizer (`lib/audioSynth.js`)**:
+   - Pure Node.js 16-bit mono 22.05kHz PCM WAV generator.
+   - Lens-aware and tempo-scaled sound design: square-wave chiptune arpeggios, detuned sawtooth synthwave, jazz seventh chords, formant-modulated speech with word-scaled durations.
 
-   - MV3 action popup that reads `hostname` and `port` from `chrome.storage.local`.
-   - Fetches `/cost` and renders a table of request-level costs plus the session total.
-
-5. Libraries (`/lib`)
-
-   - `aiAdapter.js` — Centralized provider-agnostic adapter for text streaming, image generation, and video generation using the Vercel AI SDK.
-   - `costCalculator.js` — Loads per-model costs from Helicone and accumulates per-request/session costs using usage metadata.
-   - `prompts.js` — Loads and interpolates prompt templates from `prompts/*.txt`.
-   - `processChunks.js` — Applies processors to streamed chunks and flushes an `END` sentinel.
-   - `streamCodeBlocks.js` — Extracts a specific fenced code block (e.g., ```html) from streamed text safely and incrementally.
-
-6. Prompts and Pages
-   - `prompts/html.txt`, `prompts/image.txt` — Prompt templates for text/image generation.
-   - `pages/warning.html` — Warning shown at startup to signal that content is synthetic.
-
-## Request/Response Flow
-
-1. User enters any URL in the Fauxmium browser window.
-2. `browser.js` intercepts requests:
-   - Non-GET requests are blocked.
-   - Only navigation requests and `image` resource types are forwarded to the proxy; all other subresources are answered with empty responses.
-   - Requests to the local proxy itself (`http://{hostname}:{port}/...`) bypass interception and continue normally.
-   - Requests are reissued to the proxy with stripped `Referer` header (set to empty pending upstream Chromium changes).
-3. Proxy handling:
-   - `/html`:
-     - Builds a prompt via `generatePrompt("html", { requestUrl, requestType, requestHeaders })`.
-     - Streams text via `streamText(textConfig, prompt)`.
-     - Pipes through `processChunks([costCalculator(model, url)], streamCodeBlocks("html"), result)`.
-     - Writes extracted HTML code block(s) to the client incrementally.
-   - `/image`:
-     - Builds an image prompt via `generatePrompt("image", { description })`.
-     - Calls `generateImage(imageConfig, prompt)` (Google-only for now).
-     - Returns binary image bytes with correct `Content-Type` and length.
-     - On failure, serves a transparent 1x1 PNG placeholder.
-   - `/cost`:
-     - Returns `sessionCosts` containing all request logs and a running total.
-
-## Providers and Models
-
-- Text generation providers (via Vercel AI SDK): Google (Gemini), OpenAI, Anthropic, Groq.
-- Image generation provider: Google (Gemini) only for now. Non-Google image provider selections will error and fall back to a placeholder image in the server handler.
-
-## CLI Commands (high level)
-
-- Default (no command): Uses Google/Gemini text with `gemini-2.5-flash-lite` by default and Google/Gemini images.
-- Provider commands: `gemini`/`google`, `openai`, `anthropic`, `groq` with per-provider model defaults and choices.
-- Nested `images` subcommand under each provider to adjust image settings contextually, with images currently limited to Google.
-- Common options:
-  - `--hostname|-H`, `--port|-p`, `--devtools`
-  - `--model|-m`, `--image-model|-i`, `--image-provider`
-  - `--api-key` (text), `--image-api-key` (images)
-
-## Cost Tracking
-
-- On server start, `loadCosts(textModel)` fetches pricing from Helicone (`/api/llm-costs?model=...`).
-- During streaming, `costCalculator` reads `usageMetadata` (prompt/total token counts) from the Vercel AI SDK result and computes costs:
-  - `input`: per-prompt-token rate
-  - `output`: per-completion-token rate
-- Accumulates:
-  - Per-request logs: `{ url, model, promptTokenCount, outputTokenCount, totalTokenCount, cost }`
-  - Session total: `sessionCosts.total`
-- `/cost` exposes this data for the extension.
-
-## Key Technical Decisions
-
-- Puppeteer for request interception and extension install/configuration.
-- Node.js HTTP server with minimal routing for speed and simplicity.
-- Vercel AI SDK (`ai`) for uniform streaming across multiple text providers.
-- Unified provider abstraction under Vercel AI SDK, consolidating text, image, and video generation under a single central interface.
-- Dynamic prompt templates on disk for hot updates without restart.
-- Externalized cost model lookup (Helicone), with 0-cost fallback on errors.
-
-## Design Patterns
-
-- Proxy Pattern: Local server replaces “the web” with AI-generated responses.
-- Pipeline/Stream Processing: Incremental text -> processors (`costCalculator`) -> code block extractor -> HTTP stream.
-- Configuration Injection: CLI -> `index.js` -> server/browser.
-- In-memory Event Log: Session-level accounting via `sessionCosts`.
+7. **Runtime Session State (`lib/sessionState.js`)**:
+   - Singleton tracking active text, image, video, and audio configs, active lens, custom lens prompt, and navigation breadcrumbs.
+   - Automatically flushes site memory when `activeLens` or `customLensPrompt` changes.

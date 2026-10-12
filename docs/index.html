@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fauxmium — The Infinite AI-Synthesized Web Browser</title>
+  <meta name="description" content="A local HTTP/HTTPS proxy and browser runtime that intercepts requests and synthesizes full-fidelity HTML, procedural WAV audio, vector graphics, and video streams on the fly with multi-model AI.">
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
+  
+  <!-- Preconnect and Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Site Navigation -->
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a href="#" class="brand-link">
+        <img src="icon.svg" alt="Fauxmium Prism" class="brand-icon">
+        <span>Fauxmium</span>
+      </a>
+
+      <nav>
+        <ul class="nav-links">
+          <li><a href="#simulator">Simulator</a></li>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#architecture">Architecture</a></li>
+          <li><a href="#cli">CLI Builder</a></li>
+          <li><a href="#specs">Specs</a></li>
+          <li><a href="#models">2026 Models</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <button id="theme-toggle-btn" class="theme-toggle" aria-label="Toggle light or dark theme">🌙 Dark</button>
+        <a href="https://github.com/paulkinlan/fauxmium" class="btn btn-secondary" target="_blank" rel="noopener">GitHub ↗</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container">
+      <span class="hero-tag">Synthetic Browser Lab • 2026 Multi-Modal Engine</span>
+      <h1>Browse the Web that Never Existed, Rendered in Real Time.</h1>
+      <p class="hero-lead">
+        Fauxmium is a local Apache-2.0 licensed HTTP/HTTPS proxy and autonomous browser runtime. It intercepts web requests and dynamically synthesizes full-fidelity HTML, procedural 16-bit PCM WAV audio, vector graphics, and Veo video streams on the fly with multi-model AI and site-level design coherence.
+      </p>
+      <div class="hero-cta">
+        <a href="#simulator" class="btn btn-primary">Launch Interactive Simulator ↓</a>
+        <a href="#cli" class="btn btn-secondary">Configure CLI Command</a>
+        <a href="https://github.com/paulkinlan/fauxmium" class="btn btn-secondary" target="_blank" rel="noopener">Read Source Code</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive Browser Simulator Section -->
+  <section id="simulator" class="simulator-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Interactive Laboratory</span>
+        <h2>Fauxmium Browser Simulator</h2>
+        <p>
+          Experience how Fauxmium generates continuous websites, persists domain design DNA, morphs aesthetics via Browsing Lenses, and synthesizes procedural audio in real time.
+        </p>
+      </div>
+
+      <!-- Simulated Browser Window Container -->
+      <div class="browser-window">
+        <!-- Top Toolbar -->
+        <div class="browser-topbar">
+          <div class="window-dots">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-yellow"></span>
+            <span class="dot dot-green"></span>
+          </div>
+
+          <button class="browser-nav-btn" title="Back" aria-label="Back">←</button>
+          <button class="browser-nav-btn" title="Forward" aria-label="Forward">→</button>
+          <button class="browser-nav-btn" title="Reload" aria-label="Reload">↻</button>
+
+          <!-- Omnibox -->
+          <div class="omnibox-wrap">
+            <span class="omnibox-badge">🔒</span>
+            <input type="text" id="sim-omnibox" class="omnibox" value="https://news.ycombinator.com" aria-label="URL Omnibox">
+          </div>
+
+          <!-- Controls: Lens Picker, Audio Audition, Extension Toggle -->
+          <div class="browser-controls">
+            <div class="lens-picker-wrap">
+              <span class="lens-label">Lens:</span>
+              <select id="sim-lens-select" class="lens-select" aria-label="Select Browsing Lens">
+                <option value="modern" selected>Modern Web (2026)</option>
+                <option value="retro-90s">Retro 90s Geocities</option>
+                <option value="cyberpunk-2077">Cyberpunk 2077</option>
+                <option value="brutalist">Neo-Brutalist</option>
+                <option value="noir-1940s">Film Noir 1940s</option>
+                <option value="arcade-8bit">Arcade 8-Bit</option>
+              </select>
+            </div>
+
+            <button id="sim-audition-btn" class="btn-audition" title="Audition zero-dependency procedural audio for the active lens">
+              🔊 Audition Audio
+            </button>
+
+            <button id="sim-ext-toggle" class="btn-extension-toggle" title="Toggle Companion Extension accounting drawer" aria-label="Toggle Extension">
+              <img src="icon.svg" alt="Extension Icon">
+              <span class="badge-dot"></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Route Presets Bar -->
+        <div class="route-presets">
+          <span class="route-preset-label">Explore Presets:</span>
+          <button class="route-btn active" data-route="https://news.ycombinator.com">Hacker News</button>
+          <button class="route-btn" data-route="https://youtube.com/watch?v=ai-web">YouTube Video</button>
+          <button class="route-btn" data-route="https://paul.kinlan.me">Paul Kinlan Blog</button>
+          <button class="route-btn" data-route="https://shop.example.com/cart">E-Commerce Cart</button>
+        </div>
+
+        <!-- Viewport Outer Container -->
+        <div class="viewport-outer">
+          <!-- Simulator Content Viewport (rendered dynamically by app.js) -->
+          <div id="sim-viewport"></div>
+
+          <!-- Coherence & Link Intent Inspector Drawer -->
+          <div id="coherence-drawer" class="coherence-drawer">
+            <div class="drawer-header">
+              <div class="drawer-title">
+                <span>🧬 Coherence & Link Intent Inspector</span>
+                <span style="font-size:0.75rem; font-weight:400; opacity:0.8;">(Captured by siteMemory.js)</span>
+              </div>
+              <button id="drawer-close-btn" class="drawer-close" aria-label="Close Drawer">×</button>
+            </div>
+            <div class="drawer-grid">
+              <div class="drawer-col">
+                <h5>1. Link Intent (a → b)</h5>
+                <pre id="drawer-data-context"></pre>
+              </div>
+              <div class="drawer-col">
+                <h5>2. Inherited Site DNA</h5>
+                <pre id="drawer-css-tokens"></pre>
+              </div>
+              <div class="drawer-col">
+                <h5>3. Navigation & Context Turn</h5>
+                <pre id="drawer-chat-turn"></pre>
+              </div>
+            </div>
+          </div>
+
+          <!-- Simulated Chrome Extension Popup Drawer -->
+          <div id="extension-popup-sim" class="extension-popup-sim">
+            <div class="ext-sim-header">
+              <div class="ext-sim-brand">
+                <img src="icon.svg" width="18" height="18" alt="Fauxmium Icon">
+                <span>Fauxmium Companion</span>
+              </div>
+              <span style="font-size:0.7rem; color:var(--success); font-family:var(--font-mono); font-weight:700;">LIVE</span>
+            </div>
+            <div class="ext-sim-cost-card">
+              <div style="font-size:0.75rem; text-transform:uppercase; color:var(--text-dim); margin-bottom:2px;">Session Spend</div>
+              <div class="ext-sim-total">$0.0084</div>
+              <span class="ext-sim-discount-badge">⚡ 75% Prompt Cache Saved</span>
+            </div>
+            <div class="ext-sim-row">
+              <span>Active Model:</span>
+              <span style="font-family:var(--font-mono); font-weight:600;">gemini-3.8-flash</span>
+            </div>
+            <div class="ext-sim-row">
+              <span>Active Lens:</span>
+              <span style="font-family:var(--font-mono); font-weight:600;">Modern Web</span>
+            </div>
+            <div class="ext-sim-row">
+              <span>HTML Tokens:</span>
+              <span style="font-family:var(--font-mono);">1,420 (850 cached)</span>
+            </div>
+            <div class="ext-sim-row">
+              <span>Procedural Audio:</span>
+              <span style="font-family:var(--font-mono); color:var(--success); font-weight:600;">Free (Node synth)</span>
+            </div>
+            <div class="ext-sim-row">
+              <span>Video Stream:</span>
+              <span style="font-family:var(--font-mono);">veo-3.1-fast</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Key Features Section -->
+  <section id="features" class="features-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Core Capabilities</span>
+        <h2>Engineering an Infinite Web</h2>
+        <p>
+          Fauxmium pairs prompt prefix caching, procedural audio generation, and site memory to make AI web exploration fast, cohesive, and economical.
+        </p>
+      </div>
+
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-icon-wrap">🌐</div>
+          <h3>Multi-Modal Synthesis</h3>
+          <p>
+            Synthesizes HTML, vector SVG, procedural WAV audio, and video streams in a unified pipeline. The server dynamically routes requests to appropriate AI models or fast local synthesizers.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-wrap">🕶️</div>
+          <h3>Browsing Lenses</h3>
+          <p>
+            Transform any website into alternate temporal or aesthetic worldviews (Retro 90s, Cyberpunk 2077, Neo-Brutalist, Film Noir, Arcade 8-Bit) across typography, layout, color palette, and audio.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-wrap">🧬</div>
+          <h3>Site Memory & Design DNA</h3>
+          <p>
+            Solves LLM amnesia by capturing navbar structure, brand tokens, and CSS variables across pages. When clicking a link, the originating card snippet is injected to guarantee logical continuity.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-wrap">⚡</div>
+          <h3>Prompt Prefix Caching</h3>
+          <p>
+            Structures invariant system prompts (&gt;1,024 tokens) and tiers viewport dimensions to 64px buckets. Delivers up to 75% LLM cost reduction and sub-second generation latencies.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-wrap">📼</div>
+          <h3>Byte-Range Media Streaming</h3>
+          <p>
+            Implements standard HTTP 206 Partial Content range requests for video playback. Supports timeline seeking, chunk streaming, and companion poster frame visual seeding.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-wrap">📊</div>
+          <h3>Companion Extension Accounting</h3>
+          <p>
+            Redesigned Chrome Extension displays live session token counts, prompt caching discounts, multi-modal asset breakdowns, and hot-swaps Browsing Lenses without restarting the server.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Architecture & Prompt Caching Deep Dive -->
+  <section id="architecture" class="spec-section" style="background: var(--bg-subtle); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">System Design</span>
+        <h2>Multi-Modal Request & Cache Pipeline</h2>
+        <p>
+          Fauxmium sits between Chrome and the internet, intercepting every HTTP/HTTPS request and translating it into structured, cached prompts.
+        </p>
+      </div>
+
+      <div class="spec-table-wrap" style="padding: 1.5rem; background: var(--bg-surface);">
+        <h3 style="margin-bottom: 1rem; font-size: 1.15rem;">Request Interception & Synthesis Flow</h3>
+        <pre style="font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.6; color: var(--text); overflow-x: auto;">
+[Browser / Chrome]
+        │
+        ▼ (HTTP / HTTPS Request)
+[Fauxmium Proxy Server (127.0.0.1:3991)]
+        │
+        ├── Accept: text/html
+        │     ├── Invariant System Prompt (>1,024 tokens) ───► [PROMPT CACHE HIT: 75% OFF]
+        │     ├── Decomposed Route + Site Memory (CSS/Brand)
+        │     ├── Link Intent Context (Clicked Card + Target URL)
+        │     └── AI LLM (Gemini 3.8 / GPT-6 / Claude 5.5) ──► Complete HTML Page
+        │
+        ├── Accept: image/* or /image/
+        │     ├── Dimensions, Role (hero, icon, thumbnail), Brand Colors
+        │     └── Imagen 4 / DALL-E 3 / SVG Placeholder ─────► Vector/Raster Image
+        │
+        ├── Accept: video/* or /video/
+        │     ├── Camera Motion, Aspect Ratio, Seed Poster Frame
+        │     ├── Veo 3.1 Fast / Local Fallback MP4
+        │     └── HTTP 206 Byte-Range Response ──────────────► Seeking Video Stream
+        │
+        └── Accept: audio/* or /audio/
+              ├── Audio Type (chiptune, synth, speech, ambient), BPM, Mood
+              └── Zero-Dependency Node.js PCM WAV Synth ─────► 16-Bit Audio Buffer
+        </pre>
+      </div>
+
+      <div style="margin-top: 2rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
+        <div class="feature-card">
+          <h4 style="font-size: 1.1rem; margin-bottom: 0.5rem;">Prompt Prefix Caching Architecture</h4>
+          <p style="font-size: 0.9rem;">
+            Both Anthropic and Gemini cache prompt prefixes when the invariant prefix exceeds 1,024 tokens. Fauxmium groups the system prompt into a static block followed by 64px viewport tiers (e.g. 1920×1080), avoiding cache busting when browser windows resize slightly.
+          </p>
+        </div>
+        <div class="feature-card">
+          <h4 style="font-size: 1.1rem; margin-bottom: 0.5rem;">Zero-Dependency Audio Synthesis</h4>
+          <p style="font-size: 0.9rem;">
+            When <code>--audio-provider synth</code> is active, Fauxmium generates 16-bit uncompressed PCM WAV files directly in Node.js using <code>Math.sin</code>, ADSR envelopes, low-pass filters, and formant speech synthesis. No external binaries or paid APIs needed.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive CLI Command & .env Generator Section -->
+  <section id="cli" class="cli-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Interactive Terminal Config</span>
+        <h2>CLI Command & Environment Generator</h2>
+        <p>
+          Configure your multi-modal runtime parameters and generate ready-to-run commands with appropriate environment variables.
+        </p>
+      </div>
+
+      <div class="cli-builder">
+        <!-- Controls Column -->
+        <div class="cli-controls">
+          <div class="control-group">
+            <label for="cli-provider">AI Provider</label>
+            <select id="cli-provider" class="control-select">
+              <option value="gemini" selected>Google Gemini (Recommended)</option>
+              <option value="openai">OpenAI</option>
+              <option value="anthropic">Anthropic Claude</option>
+              <option value="groq">Groq (Ultra-Fast Inference)</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <label for="cli-model">Model Selection</label>
+            <select id="cli-model" class="control-select">
+              <!-- Dynamically populated by app.js -->
+            </select>
+          </div>
+
+          <div class="control-group">
+            <label for="cli-lens">Default Browsing Lens</label>
+            <select id="cli-lens" class="control-select">
+              <option value="modern" selected>Modern Web (2026)</option>
+              <option value="retro-90s">Retro 90s Geocities</option>
+              <option value="cyberpunk-2077">Cyberpunk 2077</option>
+              <option value="brutalist">Neo-Brutalist</option>
+              <option value="noir-1940s">Film Noir 1940s</option>
+              <option value="arcade-8bit">Arcade 8-Bit</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <label for="cli-audio-provider">Audio Provider</label>
+            <select id="cli-audio-provider" class="control-select">
+              <option value="synth" selected>Procedural Synth (Zero API Cost)</option>
+              <option value="openai">OpenAI TTS</option>
+              <option value="gemini">Gemini Native Audio</option>
+              <option value="elevenlabs">ElevenLabs Speech</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <label>Media Generation Toggles</label>
+            <div class="toggle-row">
+              <input type="checkbox" id="cli-img-toggle" checked>
+              <label for="cli-img-toggle">Enable Image Synthesis</label>
+            </div>
+            <div class="toggle-row">
+              <input type="checkbox" id="cli-vid-toggle" checked>
+              <label for="cli-vid-toggle">Enable Video Generation (Veo 3.1)</label>
+            </div>
+            <div class="toggle-row">
+              <input type="checkbox" id="cli-devtools">
+              <label for="cli-devtools">Auto-Open DevTools in Chrome</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Output Cards Column -->
+        <div class="cli-output-box">
+          <div class="code-card">
+            <div class="code-card-header">
+              <span>CLI Execution Command</span>
+              <button id="copy-cmd-btn" class="btn-copy">Copy Command</button>
+            </div>
+            <pre><code id="cli-command-output">npx fauxmium</code></pre>
+          </div>
+
+          <div class="code-card">
+            <div class="code-card-header">
+              <span>Required .env Configuration</span>
+              <button id="copy-env-btn" class="btn-copy">Copy .env</button>
+            </div>
+            <pre><code id="cli-env-output">GEMINI_API_KEY=your_gemini_api_key</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Media URL Parameter Specification -->
+  <section id="specs" class="spec-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Synthesizer API</span>
+        <h2>Multi-Modal URL Parameter Specification</h2>
+        <p>
+          Fauxmium's prompt engine instructs models to author declarative media URLs with query parameters that guide image framing, video cinematography, and audio characteristics.
+        </p>
+      </div>
+
+      <div class="spec-table-wrap">
+        <table class="spec-table">
+          <thead>
+            <tr>
+              <th>Tag / MediaType</th>
+              <th>Supported Query Parameters</th>
+              <th>Description & Behavior</th>
+              <th>Example Usage</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>&lt;img&gt;</code></td>
+              <td><code>description</code>, <code>width</code>, <code>height</code>, <code>role</code>, <code>aspect_ratio</code></td>
+              <td>
+                Guides image composition. <code>role</code> (hero, logo, icon, avatar, thumbnail) influences shot framing and detail density. Inherits site CSS brand palette.
+              </td>
+              <td><code>/img/hero.jpg?description=retro+cyberdeck&width=1280&height=720&role=hero</code></td>
+            </tr>
+            <tr>
+              <td><code>&lt;video&gt;</code></td>
+              <td><code>description</code>, <code>width</code>, <code>height</code>, <code>camera</code>, <code>poster_description</code>, <code>aspect_ratio</code></td>
+              <td>
+                Configures Veo 3.1 video generation. <code>camera</code> specifies motion (dolly, pan, static, orbit). <code>poster_description</code> seeds the companion poster frame for visual continuity.
+              </td>
+              <td><code>/video/demo.mp4?description=quantum+engine+spin&camera=orbit+slow&poster_description=core+offline</code></td>
+            </tr>
+            <tr>
+              <td><code>&lt;audio&gt;</code></td>
+              <td><code>description</code>, <code>type</code>, <code>bpm</code>, <code>mood</code>, <code>transcript</code>, <code>voice</code></td>
+              <td>
+                Generates procedural WAV audio or TTS. <code>type</code> (chiptune, synth, speech, ambient, sound-effect) dictates synth oscillator shapes. <code>transcript</code> scales speech duration.
+              </td>
+              <td><code>/audio/bg.wav?type=chiptune&bpm=140&mood=energetic&description=boss+fight+stage</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2026 Model Catalog Table -->
+  <section id="models" class="spec-section" style="background: var(--bg-subtle); border-top: 1px solid var(--border);">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Model Roster</span>
+        <h2>2026 Multi-Model Catalog & Pricing</h2>
+        <p>
+          Configured in <code>config/models.json</code>, supporting dynamic prefix caching discounts and multi-modal per-unit accounting.
+        </p>
+      </div>
+
+      <div class="spec-table-wrap">
+        <table class="spec-table">
+          <thead>
+            <tr>
+              <th>Provider</th>
+              <th>Model Name</th>
+              <th>Role</th>
+              <th>Input / Cached / Output (per 1M)</th>
+              <th>Media Per Unit</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Gemini</strong></td>
+              <td><code>gemini-3.8-flash</code> (Default)</td>
+              <td>Ultra-fast HTML synthesis</td>
+              <td>$0.15 / $0.0375 / $0.60</td>
+              <td>—</td>
+            </tr>
+            <tr>
+              <td><strong>Gemini</strong></td>
+              <td><code>gemini-3.8-pro</code></td>
+              <td>Complex logic & dense layout</td>
+              <td>$1.25 / $0.3125 / $5.00</td>
+              <td>—</td>
+            </tr>
+            <tr>
+              <td><strong>Gemini</strong></td>
+              <td><code>gemini-3.1-flash-image</code> (Default)</td>
+              <td>Fast multi-modal image synthesis</td>
+              <td>—</td>
+              <td>$0.039 / img</td>
+            </tr>
+            <tr>
+              <td><strong>Gemini</strong></td>
+              <td><code>veo-3.1-fast-generate-preview</code></td>
+              <td>High-definition video clips</td>
+              <td>—</td>
+              <td>$0.400 / sec</td>
+            </tr>
+            <tr>
+              <td><strong>OpenAI</strong></td>
+              <td><code>gpt-6-sol</code> (Default)</td>
+              <td>Balanced reasoning & code</td>
+              <td>$2.00 / $0.50 / $8.00</td>
+              <td>—</td>
+            </tr>
+            <tr>
+              <td><strong>OpenAI</strong></td>
+              <td><code>gpt-6-luna</code></td>
+              <td>Low-latency micro-tier</td>
+              <td>$0.30 / $0.075 / $1.20</td>
+              <td>—</td>
+            </tr>
+            <tr>
+              <td><strong>OpenAI</strong></td>
+              <td><code>gpt-image-2.5</code></td>
+              <td>High-fidelity raster images</td>
+              <td>—</td>
+              <td>$0.040 / img</td>
+            </tr>
+            <tr>
+              <td><strong>Anthropic</strong></td>
+              <td><code>claude-sonnet-5-5</code> (Default)</td>
+              <td>Flawless semantic HTML</td>
+              <td>$3.00 / $0.75 / $15.00</td>
+              <td>—</td>
+            </tr>
+            <tr>
+              <td><strong>Anthropic</strong></td>
+              <td><code>claude-haiku-5-5</code></td>
+              <td>High-throughput streaming</td>
+              <td>$0.80 / $0.20 / $4.00</td>
+              <td>—</td>
+            </tr>
+            <tr>
+              <td><strong>Groq</strong></td>
+              <td><code>openai/gpt-oss-120b</code> (Default)</td>
+              <td>Open-weight LPU acceleration</td>
+              <td>$0.15 / $0.0375 / $0.60</td>
+              <td>—</td>
+            </tr>
+            <tr>
+              <td><strong>Local Synth</strong></td>
+              <td><code>synth-wav</code></td>
+              <td>Procedural 16-bit PCM Audio</td>
+              <td>Free (Local CPU)</td>
+              <td>$0.000 / wav</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <p>
+        Fauxmium is created by <a href="https://paul.kinlan.me" target="_blank" rel="noopener">Paul Kinlan</a>. Distributed under the Apache-2.0 License. Not affiliated with any employer or product.
+      </p>
+      <div class="footer-links">
+        <a href="https://github.com/paulkinlan/fauxmium" target="_blank" rel="noopener">GitHub Repository</a>
+        <a href="https://github.com/paulkinlan/fauxmium/tree/main/extension" target="_blank" rel="noopener">Chrome Extension</a>
+        <a href="https://github.com/paulkinlan/fauxmium/blob/main/LICENCE" target="_blank" rel="noopener">Apache-2.0 License</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <!-- Application Script -->
+  <script src="app.js"></script>
+</body>
+</html>

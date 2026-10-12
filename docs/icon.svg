@@ -1,0 +1,17 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Outer High-Contrast Portal Ring -->
+  <circle cx="64" cy="64" r="54" stroke="#2563eb" stroke-width="8" stroke-linecap="round"/>
+  <path d="M 64,10 A 54,54 0 0,1 118,64" stroke="#10b981" stroke-width="8" stroke-linecap="round"/>
+  <path d="M 10,64 A 54,54 0 0,1 64,10" stroke="#f43f5e" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- Geometric 4-Point Prism Facets -->
+  <polygon points="64,24 88,64 64,64" fill="#3b82f6"/>
+  <polygon points="64,64 88,64 64,104" fill="#10b981"/>
+  <polygon points="64,64 64,104 40,64" fill="#f43f5e"/>
+  <polygon points="40,64 64,24 64,64" fill="#06b6d4"/>
+
+  <!-- Inner High-Contrast White Core Spark -->
+  <polygon points="64,38 78,64 64,90 50,64" fill="#ffffff"/>
+  <circle cx="64" cy="64" r="6" fill="#1e293b"/>
+  <circle cx="64" cy="64" r="3" fill="#ffffff"/>
+</svg>

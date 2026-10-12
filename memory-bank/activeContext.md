@@ -1,60 +1,33 @@
-# Active Context
+# Active Context: Fauxmium
 
-This document tracks the current work focus, recent changes, next steps, active decisions, and project insights.
+This document tracks active development goals, recent architecture updates, decisions, and system verification.
 
 ## Current Focus
+- Comprehensive documentation update across `README.md` and `memory-bank/`.
+- Interactive GitHub Pages website (`docs/`) showcasing the Synthetic Browser Simulator, Browsing Lens Audition audio player, and CLI Command Generator.
+- Deployment automation via GitHub Actions (`.github/workflows/pages.yml`).
+- Verification via unit test suite (`test/fauxmium.test.js`).
 
-- Stabilize multi-provider text support (Google, OpenAI, Anthropic, Groq) and the Google-only image pipeline.
-- Maintain and refine the Chrome extension cost dashboard that reads `/cost`.
-- Keep documentation (Memory Bank) aligned with the current codebase and plan the next iteration (image context, optional state).
+## Recent Architectural Milestones Completed
+1. **Multi-Modal Synthesis Engine**:
+   - Streaming HTML5 (`GET /html`) with decomposed routes, media capabilities, domain session state, and multi-turn threads.
+   - AI Image (`GET /image`) with semantic role inference (`logo`, `avatar`, `hero`, `product`), aspect ratio calculation, site brand palette adoption, in-flight promise deduplication, and styled SVG fallbacks.
+   - AI Video (`GET /video`) via Veo 3.1 with poster-frame continuity, camera motion directives, and HTTP 206 byte-range streaming.
+   - Hybrid Audio (`GET /audio`) with OpenAI / Gemini TTS and zero-dependency procedural 16-bit PCM WAV synthesizer (`synth-wav`) with BPM scaling and lens-aware sound design.
+2. **Browsing Lenses**:
+   - 9 aesthetic lenses (`modern`, `retro-90s`, `y2k`, `cyberpunk-2077`, `brutalist`, `vaporwave`, `noir-1940s`, `arcade-8bit`, `custom`) integrated across HTML, image, video, and audio prompts.
+3. **Site & Link-Level Coherence (`lib/siteMemory.js`)**:
+   - Captures domain design DNA (typography, CSS variables, nav links, cached images).
+   - Tracks `a => b` link intent via `__fauxmiumCaptureClick` and `data-context`.
+   - Persists domain session state (`domainState`) across navigations for search, cart, and authenticated login sessions.
+4. **Prompt Prefix Caching**:
+   - Invariant system prompt (`prompts/html-system.txt`, >1,800 tokens, 0 placeholders) and tiered user prompt prefix for 75% prompt cache discounts in `costCalculator.js`.
+5. **Chrome Extension Redesign**:
+   - Native light/dark mode UI with tabular numerals, vector icons, auto-saving lens configuration, and guaranteed save before tab reload.
+6. **2026 Model Catalog**:
+   - Google Gemini 3.8 Flash / Pro / Flash-Lite, Veo 3.1, OpenAI GPT-6 Sol / Luna / Astra, Anthropic Claude 5.5 Sonnet, Groq GPT-OSS 120B.
 
-## Recent Changes
-
-- CLI and Provider Support:
-  - `index.js` now provides a yargs-based CLI with commands for `gemini/google`, `openai`, `anthropic`, and `groq`.
-  - Image configuration supported via a nested `images` subcommand; images currently limited to Google/Gemini.
-  - API key resolution via environment variables or CLI flags.
-- Server and Endpoints:
-  - `server/index.js` exposes `GET /html`, `GET /image`, and `GET /cost`.
-  - `loadCosts(model)` fetches per-model pricing from Helicone to enable session cost tracking.
-- Streaming Pipeline:
-  - `server/processHTML.js` builds prompts from `prompts/html.txt`, streams with `lib/aiAdapter.js`, pipes through `lib/processChunks.js` with `lib/costCalculator.js`, and extracts ```html code via `lib/streamCodeBlocks.js`.
-  - `server/processImage.js` builds prompts from `prompts/image.txt`, generates images via `lib/aiAdapter.js` (Google-only), serves binary with fallback 1x1 PNG on errors.
-- Browser Controller:
-  - `browser.js` launches headful Chrome, installs the MV3 extension at runtime, configures it via CDP `Extensions.setStorageItems`, sets up request interception per page, and shows `pages/warning.html` initially.
-  - Interception policy: only navigation and image requests are forwarded; non-GET and other subresources are blocked; `Referer` is stripped for proxy-bound requests.
-- Chrome Extension:
-  - `extension/manifest.json`, `popup.html`, `popup.js` render session total and per-request costs by fetching `/cost`.
-- Memory Bank:
-  - Updated `systemPatterns.md` and `techContext.md` to reflect the above architecture, providers, constraints, and CLI usage.
-
-## Active Decisions and Patterns
-
-- Proxy Pattern with strict subresource policy (nav + images only); external CSS/JS are blocked and should be generated inline.
-- Vercel AI SDK is used for all text streaming, image generation, and video generation, providing unified provider adapter patterns and removing raw @google/genai.
-- Costs are computed from usage metadata when available; 0-cost fallback if usage is missing or pricing unavailable.
-- Stateless navigations by design; no memory between requests (yet).
-- Warning screen shown at startup to indicate synthetic content.
-
-## Next Steps
-
-- Image generation context:
-  - Parse and pass width/height/alt-style description from image `src` query params through `/image` and into the prompt to improve relevance and aspect ratio.
-- Optional state:
-  - Introduce an opt-in session memory to carry context across navigations.
-- Provider parity for images:
-  - Add support for additional image providers or abstract image generation behind a common interface.
-- Cost and UX improvements:
-  - The popup is now responsive and handles long URLs.
-  - Add a `/reset-costs` endpoint and a refresh/reset control in the extension popup.
-  - Handle providers that do not return usage by estimating tokens (or clearly labeling as “unknown/0”).
-- Hardening and DX:
-  - Better error handling/timeouts and structured logs.
-  - Test coverage for request interception, streaming, and cost accounting.
-  - Optional persistent user-data-dir to keep a browsing session (while still signaling synthetic content).
-
-## Project Insights
-
-- Inline CSS/JS in generated HTML is necessary given subresource blocking; prompts should encourage this.
-- Fenced code extraction (```html) keeps the streaming robust and prevents non-HTML text from leaking into the response.
-- Helicone pricing data can be missing for some models; systems should degrade gracefully.
+## Active Decisions
+- Keep system prompt completely invariant to leverage multi-provider prefix caching.
+- Use native Web Audio API in documentation and client-side simulator to mirror backend procedural synthesis without heavyweight audio libraries.
+- GitHub Pages is deployed purely from `docs/` using static HTML/CSS/JS without external build steps or frameworks.

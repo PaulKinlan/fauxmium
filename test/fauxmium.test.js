@@ -701,6 +701,59 @@ test("Task 4: Audio prompt & procedural synthesizer: bpm, mood, lens, and transc
   assert.ok(synthSpeech.buffer.length > 50000, "Speech buffer duration should scale with transcript length");
 });
 
+test("Task 5: Documentation & GitHub Pages verification", () => {
+  const rootDir = path.resolve(".");
+  
+  // 1. README.md verification
+  const readmePath = path.join(rootDir, "README.md");
+  assert.ok(fs.existsSync(readmePath), "README.md must exist");
+  const readmeContent = fs.readFileSync(readmePath, "utf8");
+  assert.ok(readmeContent.includes("Multi-Modal Synthetic Engine"), "README must document Multi-Modal Synthetic Engine");
+  assert.ok(readmeContent.includes("Browsing Lenses"), "README must document Browsing Lenses");
+  assert.ok(readmeContent.includes("Prompt Prefix Caching"), "README must document Prompt Prefix Caching");
+  assert.ok(readmeContent.includes("siteMemory.js"), "README must document Site Memory");
+  assert.ok(readmeContent.includes("gemini-3.8-flash"), "README must document 2026 models like gemini-3.8-flash");
+  assert.ok(readmeContent.includes("https://paulkinlan.github.io/fauxmium/"), "README must link to GitHub Pages live demo");
 
+  // 2. docs/index.html verification
+  const indexPath = path.join(rootDir, "docs", "index.html");
+  assert.ok(fs.existsSync(indexPath), "docs/index.html must exist");
+  const indexContent = fs.readFileSync(indexPath, "utf8");
+  assert.ok(indexContent.includes("sim-omnibox"), "docs/index.html must contain simulator omnibox");
+  assert.ok(indexContent.includes("sim-lens-select"), "docs/index.html must contain lens select");
+  assert.ok(indexContent.includes("sim-viewport"), "docs/index.html must contain simulator viewport");
+  assert.ok(indexContent.includes("coherence-drawer"), "docs/index.html must contain coherence drawer");
+  assert.ok(indexContent.includes("cli-provider"), "docs/index.html must contain CLI config builder");
+  assert.ok(indexContent.includes("gemini-3.8-flash"), "docs/index.html must catalog gemini-3.8-flash");
 
+  // 3. docs/styles.css verification
+  const cssPath = path.join(rootDir, "docs", "styles.css");
+  assert.ok(fs.existsSync(cssPath), "docs/styles.css must exist");
+  const cssContent = fs.readFileSync(cssPath, "utf8");
+  assert.ok(cssContent.includes("Space Grotesk"), "styles.css must use Space Grotesk");
+  assert.ok(cssContent.includes("Plus Jakarta Sans"), "styles.css must use Plus Jakarta Sans");
+  assert.ok(cssContent.includes("JetBrains Mono"), "styles.css must use JetBrains Mono");
+  assert.ok(cssContent.includes("coherence-drawer"), "styles.css must style coherence drawer");
 
+  // 4. docs/app.js verification
+  const appPath = path.join(rootDir, "docs", "app.js");
+  assert.ok(fs.existsSync(appPath), "docs/app.js must exist");
+  const appContent = fs.readFileSync(appPath, "utf8");
+  assert.ok(appContent.includes("AudioContext"), "app.js must implement Web Audio API synthesis");
+  assert.ok(appContent.includes("SIMULATED_DATA"), "app.js must define simulator dataset");
+  assert.ok(appContent.includes("openCoherenceDrawer"), "app.js must handle coherence inspection");
+
+  // 5. docs/icon.svg and docs/.nojekyll verification
+  const iconPath = path.join(rootDir, "docs", "icon.svg");
+  assert.ok(fs.existsSync(iconPath), "docs/icon.svg must exist");
+  const nojekyllPath = path.join(rootDir, "docs", ".nojekyll");
+  assert.ok(fs.existsSync(nojekyllPath), "docs/.nojekyll must exist");
+
+  // 6. .github/workflows/pages.yml verification
+  const workflowPath = path.join(rootDir, ".github", "workflows", "pages.yml");
+  assert.ok(fs.existsSync(workflowPath), ".github/workflows/pages.yml must exist");
+  const workflowContent = fs.readFileSync(workflowPath, "utf8");
+  assert.ok(workflowContent.includes("actions/deploy-pages"), "workflow must deploy to pages");
+  assert.ok(workflowContent.includes("actions/upload-pages-artifact"), "workflow must upload pages artifact");
+  assert.ok(workflowContent.includes("docs"), "workflow must target docs directory");
+});
