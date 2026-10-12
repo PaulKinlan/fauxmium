@@ -20,10 +20,23 @@ import {
 
 import { makeVideoModel } from "../lib/aiAdapter.js";
 import { synthesizeWav } from "../lib/audioSynth.js";
+import fs from "node:fs";
+import path from "node:path";
 import { serveMediaBuffer } from "../lib/rangeResponse.js";
 import { FALLBACK_MP4_BUFFER, generatePlaceholderSvg } from "../lib/fallbackMedia.js";
 import { registerPendingImage, getPendingImage } from "../lib/imageCache.js";
 import { syncGeminiModels } from "../lib/modelSync.js";
+import { generateStructuredPrompt } from "../lib/prompts.js";
+import {
+  extractAndSaveSiteProfile,
+  getFormattedSiteProfile,
+  recordLinkContext,
+  consumeLinkContext,
+  formatLinkContext,
+  getNavigationThread,
+  appendNavigationTurn,
+  clearSiteMemory,
+} from "../lib/siteMemory.js";
 import { startServer } from "../server/index.js";
 
 test("Task 1: Declarative models, aliases, and lens configurations", () => {
@@ -272,4 +285,204 @@ test("syncGeminiModels discovers live models or reads disk cache", async () => {
   const models = await syncGeminiModels();
   assert.ok(Array.isArray(models), "syncGeminiModels should return an array of models");
 });
+
+test("Task 2: Prompt Prefix Caching: static invariant system prompt and tiered user prompt prefix", async () => {
+  const res1 = await generateStructuredPrompt("html", {
+    lensInstruction: "Modern Web standard",
+    currentDate: "2026-10-12",
+    country: "United States",
+    timezone: "America/New_York",
+    acceptLanguage: "en-US",
+    viewportWidth: "1280",
+    viewportHeight: "832",
+    colorScheme: "dark",
+    siteProfile: "Domain: example.com",
+    referer: "https://example.com/home",
+    postData: "None",
+    linkContext: "Clicked link: About",
+    sessionHistory: "1. Home",
+    requestUrl: "https://example.com/about",
+    requestType: "document",
+  });
+
+  const res2 = await generateStructuredPrompt("html", {
+    lensInstruction: "Modern Web standard",
+    currentDate: "2026-10-12",
+    country: "United States",
+    timezone: "America/New_York",
+    acceptLanguage: "en-US",
+    viewportWidth: "1280", // same bucket
+    viewportHeight: "832",
+    colorScheme: "dark",
+    siteProfile: "Domain: example.com",
+    referer: "https://example.com/about",
+    postData: "q=test",
+    linkContext: "Clicked link: Search",
+    sessionHistory: "1. Home\n2. About",
+    requestUrl: "https://example.com/search?q=test",
+    requestType: "document",
+  });
+
+  // 1. System prompt must be non-empty, contain zero ### placeholders, and exceed 1,024 tokens
+  assert.ok(res1.system.length > 4000, "System prompt should be extensive (>4000 chars / ~1000+ tokens)");
+  assert.ok(!res1.system.includes("###"), "System prompt must contain zero un-interpolated ### placeholders");
+  assert.equal(res1.system, res2.system, "System prompt must be 100% invariant across requests");
+
+  // 2. The stable prefix in user prompt must be identical across requests on the same domain
+  const prefix1 = res1.prompt.split("[NAVIGATION & LINK INTENT")[0];
+  const prefix2 = res2.prompt.split("[NAVIGATION & LINK INTENT")[0];
+  assert.ok(prefix1.length > 100, "Stable environment and site profile prefix must exist");
+  assert.equal(prefix1, prefix2, "Stable prefix must match byte-for-byte across requests for prefix caching");
+});
+
+test("Task 2: Prompt Caching: costCalculator applies 75% discount for cached input tokens", async () => {
+  resetSessionCosts();
+  await loadCosts("gemini-3.5-flash");
+
+  // Gemini-3.5-flash fallback pricing: input = $1.50/M tokens = $0.0000015/token
+  // 1,000 input tokens total, where 800 are cached:
+  // Uncached: 200 * $0.0000015 = $0.000300
+  // Cached: 800 * $0.0000015 * 0.25 (75% off) = $0.000300
+  // Output: 0 tokens
+  // Total expected cost = $0.000600 (vs $0.001500 full price)
+  const calc = costCalculator("gemini-3.5-flash", "https://example.com/cached-test", "text");
+  const log = calc({
+    usage: {
+      promptTokens: 1000,
+      cachedInputTokens: 800,
+      outputTokens: 0,
+      totalTokens: 1000,
+    },
+    END: true,
+  });
+
+  assert.equal(log.promptTokenCount, 1000);
+  assert.equal(log.cachedInputTokens, 800);
+  assert.ok(Math.abs(log.cost - 0.0006) < 0.00001, `Cost with 75% prompt cache discount should be 0.0006, got ${log.cost}`);
+  assert.equal(sessionCosts.cachedTokens, 800, "sessionCosts.cachedTokens must accumulate");
+});
+
+test("Task 1: Chrome Extension Icons: exact PNG dimensions and manifest declarations", () => {
+  const sizes = [16, 32, 48, 128];
+  const iconsDir = path.resolve("extension/icons");
+
+  // 1. Verify SVG master exists
+  assert.ok(fs.existsSync(path.join(iconsDir, "icon.svg")), "icon.svg must exist");
+
+  // 2. Verify all PNGs exist with exact pixel dimensions in IHDR
+  for (const size of sizes) {
+    const filePath = path.join(iconsDir, `icon-${size}.png`);
+    assert.ok(fs.existsSync(filePath), `icon-${size}.png must exist`);
+    const buf = fs.readFileSync(filePath);
+    assert.equal(buf.toString("ascii", 1, 4), "PNG", "File must have valid PNG signature");
+    const width = buf.readUInt32BE(16);
+    const height = buf.readUInt32BE(20);
+    assert.equal(width, size, `icon-${size}.png width must be ${size}`);
+    assert.equal(height, size, `icon-${size}.png height must be ${size}`);
+  }
+
+  // 3. Verify manifest.json declares icons and action.default_icon
+  const manifest = JSON.parse(fs.readFileSync(path.resolve("extension/manifest.json"), "utf8"));
+  assert.ok(manifest.icons, "manifest.json must declare icons");
+  assert.equal(manifest.icons["16"], "icons/icon-16.png");
+  assert.equal(manifest.icons["32"], "icons/icon-32.png");
+  assert.equal(manifest.icons["48"], "icons/icon-48.png");
+  assert.equal(manifest.icons["128"], "icons/icon-128.png");
+  assert.equal(manifest.action.default_icon["128"], "icons/icon-128.png");
+});
+
+test("Task 3: Site Memory & Link Intent: captures design DNA, reusable media, and a => b click intent", () => {
+  clearSiteMemory();
+
+  const sampleHtml = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Paul Kinlan - Web Log</title>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap">
+        <style>
+          :root {
+            --brand-primary: #5c7cfa;
+            --brand-bg: #12131c;
+          }
+          body { font-family: "Inter", sans-serif; background: var(--brand-bg); }
+        </style>
+      </head>
+      <body>
+        <header>
+          <nav>
+            <a href="https://paul.kinlan.me/">Home</a>
+            <a href="https://paul.kinlan.me/about">About</a>
+            <a href="https://paul.kinlan.me/projects">Projects</a>
+          </nav>
+        </header>
+        <main>
+          <img src="https://paul.kinlan.me/img/avatar.jpg?description=Paul+Kinlan+avatar&width=120&height=120" alt="Avatar" width="120" height="120">
+          <article class="card">
+            <h3>Building Synthetic Web</h3>
+            <a href="https://paul.kinlan.me/post-1" data-context="Deep dive into Fauxmium browser architecture">Read Article</a>
+          </article>
+        </main>
+      </body>
+    </html>
+  `;
+
+  // 1. Extract design DNA & media assets
+  extractAndSaveSiteProfile("https://paul.kinlan.me/", sampleHtml);
+  const profile = getFormattedSiteProfile("https://paul.kinlan.me/about");
+
+  assert.ok(profile.includes("paul.kinlan.me"), "Profile should mention domain");
+  assert.ok(profile.includes("Inter"), "Profile should include typography");
+  assert.ok(profile.includes("--brand-primary"), "Profile should include CSS variables");
+  assert.ok(profile.includes("Home") && profile.includes("About"), "Profile should include nav links");
+  assert.ok(profile.includes("avatar.jpg"), "Profile should include cached avatar image asset");
+
+  // 2. Click Intent Tracking (a => b)
+  recordLinkContext({
+    sourceUrl: "https://paul.kinlan.me/",
+    targetUrl: "https://paul.kinlan.me/post-1",
+    linkText: "Read Article",
+    cardTitle: "Building Synthetic Web",
+    dataContext: "Deep dive into Fauxmium browser architecture",
+    cardSnippet: "Building Synthetic Web Read Article",
+    cardImageSrc: "https://paul.kinlan.me/img/avatar.jpg?description=Paul+Kinlan+avatar&width=120&height=120",
+  });
+
+  const consumed = consumeLinkContext("https://paul.kinlan.me/post-1");
+  assert.ok(consumed, "Should consume link context for target URL");
+  assert.equal(consumed.cardTitle, "Building Synthetic Web");
+  assert.equal(consumed.dataContext, "Deep dive into Fauxmium browser architecture");
+
+  const formattedLink = formatLinkContext(consumed);
+  assert.ok(formattedLink.includes("Building Synthetic Web"));
+  assert.ok(formattedLink.includes("Deep dive into Fauxmium browser architecture"));
+});
+
+test("Task 3: Multi-Turn Navigation Threads: preserves immutable chat turns and slides window", () => {
+  clearSiteMemory();
+
+  const domain = "https://example.com";
+
+  // Append 3 navigation turns
+  appendNavigationTurn(`${domain}/1`, "User prompt 1", "<h1>Page 1</h1>");
+  appendNavigationTurn(`${domain}/2`, "User prompt 2", "<h1>Page 2</h1>");
+  appendNavigationTurn(`${domain}/3`, "User prompt 3", "<h1>Page 3</h1>");
+
+  const thread = getNavigationThread(`${domain}/4`);
+  assert.equal(thread.length, 6, "Thread should have 3 user + 3 assistant messages (6 total)");
+  assert.equal(thread[0].role, "user");
+  assert.equal(thread[0].content, "User prompt 1");
+  assert.equal(thread[1].role, "assistant");
+  assert.ok(thread[1].content.includes("Page 1"));
+
+  // Append 2 more turns (total 5 turns = 10 messages -> should slide window to MAX_THREAD_TURNS=4 turns / 8 messages)
+  appendNavigationTurn(`${domain}/4`, "User prompt 4", "<h1>Page 4</h1>");
+  appendNavigationTurn(`${domain}/5`, "User prompt 5", "<h1>Page 5</h1>");
+
+  const threadAfterSlide = getNavigationThread(`${domain}/6`);
+  assert.equal(threadAfterSlide.length, 8, "Thread should slide to MAX_THREAD_TURNS * 2 = 8 messages");
+  // Oldest turn (turn 1) dropped: turn 2 is now first
+  assert.equal(threadAfterSlide[0].content, "User prompt 2");
+});
+
 

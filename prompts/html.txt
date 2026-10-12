@@ -1,42 +1,20 @@
-Create the HTML for a web page that would be served at the URL: ###requestUrl###. The page should be visually appealing and relevant to the URL.
-
-Relevant details about the request:
-- URL: ###requestUrl###
-- Resource Type: ###requestType###
-- Referrer / Previous Page: ###referer###
-- Form POST Data (if submitted): ###postData###
-- Recent Session History / Context:
-###sessionHistory###
+[SESSION ENVIRONMENT - STABLE]
+- Aesthetic / Era Lens: ###lensInstruction###
 - Date: ###currentDate###
-- Time: ###currentTime###
-- Timezone: ###timezone###
-- Country: ###country###
-- User Preferred Languages: ###acceptLanguage###
-- Browser Viewport Size: ###viewportWidth###px width by ###viewportHeight###px height
-- Color Scheme Preference: ###colorScheme###
-- Aesthetic / Era Lens Instruction: ###lensInstruction###
+- Region & Locale: ###country### (Timezone: ###timezone###, Language: ###acceptLanguage###)
+- Display: ###viewportWidth###x###viewportHeight###px | Color Scheme: ###colorScheme###
 
-Response requirements:
-- The HTML is well-structured, accessible, responsive, and adheres to the specified Aesthetic / Era Lens Instruction.
-- Use a design that looks authentic to the site or concept at that URL, incorporating relevant brand identity, palettes, and layout paradigms.
-- Respect the User's Color Scheme Preference (###colorScheme###) by designing colors, contrasts, and styles accordingly.
-- If Form POST Data (###postData###) is present, process it dynamically (e.g. render search results, show confirmation messages, update state, or display errors as appropriate).
-- If Recent Session History is available, maintain continuity with the user's journey (e.g. logged-in avatar, cart items, breadcrumbs, or state progression).
-- Provide natural navigation links or a "Back" button when a Referrer (###referer###) is available.
-- Image src urls must be descriptive by encoding the description as query parameters. Always include width and height on the element and URL. e.g., <img src="https://example.com/images/beautiful-sunset.jpg?description=beautiful+sunset+over+mountains&height=800&width=600" alt="beautiful sunset over mountains" width="800" height="600">
-- Video src urls must be descriptive by encoding the description as query parameters. Always include a poster attribute with an image URL that describes the first frame of the video, and encode the poster URL in the video src query parameter. e.g., <video poster="https://example.com/images/sunset-poster.jpg?description=sunset+first+frame&height=800&width=600" src="https://example.com/video/beautiful-sunset.mp4?description=sunset+over+water&height=800&width=600&poster=https://example.com/images/sunset-poster.jpg?description=sunset+first+frame" alt="sunset over water" controls>
-- Audio src urls: When music, sound effects, voiceovers, or ambient sounds are appropriate, embed an <audio> element with descriptive query parameters (type=music|sfx|ambient|speech|chiptune). e.g., <audio src="https://example.com/audio/theme.wav?description=cozy+lofi+ambient+synth+loop&type=music" controls autoplay loop></audio> or trigger UI sound effects on click: new Audio('https://example.com/audio/click.wav?description=subtle+button+click&type=sfx').play().
-- For games, synthesizers, and procedural audio, feel free to use Web Audio API directly or import Tone.js (https://esm.sh/tone).
-- Links should be full paths (e.g. https://...) and not '#'-only.
-- Forms can use either METHOD=GET or METHOD=POST. Both are supported.
-- Links must not include target="_blank" so navigation stays within the Fauxmium browser window.
-- Include CSS styles within a <style> tag in the <head> of the page.
-- Include JavaScript within a <script type="module"> tag in the <head> of the page.
-- Allowed third-party CDN libraries and fonts:
-  * Google Fonts (https://fonts.googleapis.com/ and https://fonts.gstatic.com/) & Bunny Fonts (https://fonts.bunny.net/)
-  * Tailwind CSS CDN (https://cdn.tailwindcss.com)
-  * Modern JS modules via esm.sh (https://esm.sh/) - React, Preact, Three.js, D3.js, Tone.js, Lucide icons, PixiJS, etc.
-  * cdnjs (https://cdnjs.cloudflare.com/) & jsDelivr (https://cdn.jsdelivr.net/)
-  * unpkg.com (https://unpkg.com/)
-- Do not leave placeholders; implement complete HTML, CSS, and JS logic required to deliver a polished experience.
-- Only return the HTML content (inside a ```html code fence) without any conversational preamble or postscript.
+[SITE COHERENCE PROFILE - REUSE DESIGN & CACHED ASSETS]
+###siteProfile###
+
+[NAVIGATION & LINK INTENT - DYNAMIC]
+- Previous Page (Referrer): ###referer###
+- Submitted Form / POST Data: ###postData###
+- Link Intent & Item Context:
+###linkContext###
+- Recent Session Breadcrumbs:
+###sessionHistory###
+- Target URL to Render: ###requestUrl###
+- Resource Type: ###requestType###
+
+Synthesize the complete HTML document for ###requestUrl### now inside a ```html code block.

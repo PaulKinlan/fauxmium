@@ -3,6 +3,7 @@ import path from "path";
 import puppeteer from "puppeteer";
 import { fileURLToPath } from "url";
 import { isAllowedDomain } from "./config/allowedDomains.js";
+import { recordLinkContext } from "./lib/siteMemory.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -76,6 +77,14 @@ function startBrowser(hostname, port, devtools) {
    */
   async function injectProgressAndSkeletons(page) {
     try {
+      try {
+        await page.exposeFunction("__fauxmiumCaptureClick", (ctx) => {
+          recordLinkContext(ctx);
+        });
+      } catch (err) {
+        // Function may already be exposed on this page
+      }
+
       await page.evaluateOnNewDocument(() => {
         let bar = null;
         function mountUI() {
@@ -137,6 +146,21 @@ function startBrowser(hostname, port, devtools) {
           const a = e.target?.closest?.("a");
           if (a && a.href && !a.href.startsWith("#") && !a.href.startsWith("javascript:")) {
             triggerProgress();
+
+            try {
+              const card =
+                a.closest("article, li, tr, [class*='card'], [class*='item'], [class*='video'], [class*='post'], section, div") || a;
+              const payload = {
+                targetUrl: a.href,
+                sourceUrl: window.location.href,
+                linkText: (a.innerText || a.getAttribute("aria-label") || a.title || "").trim().slice(0, 200),
+                dataContext: a.getAttribute("data-context") || a.getAttribute("data-prompt") || "",
+                cardTitle: (card.querySelector("h1, h2, h3, h4, [class*='title']")?.innerText || "").trim().slice(0, 200),
+                cardSnippet: (card.innerText || "").replace(/\s+/g, " ").trim().slice(0, 350),
+                cardImageSrc: (a.querySelector("img")?.src || card.querySelector("img")?.src || ""),
+              };
+              window.__fauxmiumCaptureClick?.(payload);
+            } catch (err) {}
           }
         }, true);
 

@@ -1,5 +1,5 @@
 import { costCalculator } from "../lib/costCalculator.js";
-import { generatePrompt } from "../lib/prompts.js";
+import { generateStructuredPrompt } from "../lib/prompts.js";
 import { streamCodeBlocks } from "../lib/streamCodeBlocks.js";
 import { processChunks } from "../lib/processChunks.js";
 import { streamText } from "../lib/aiAdapter.js";
@@ -10,6 +10,14 @@ import {
   getActiveLensInstruction,
 } from "../lib/sessionState.js";
 import { cacheHtml, getCachedHtml } from "../lib/imageCache.js";
+import {
+  consumeLinkContext,
+  formatLinkContext,
+  getFormattedSiteProfile,
+  extractAndSaveSiteProfile,
+  getNavigationThread,
+  appendNavigationTurn,
+} from "../lib/siteMemory.js";
 
 export async function processHTML(req, res, url, textConfig) {
   let contentType = "text/html; charset=utf-8";
@@ -18,8 +26,11 @@ export async function processHTML(req, res, url, textConfig) {
   const requestUrl = url.searchParams.get("url") || "";
   const requestType = url.searchParams.get("type") || "document";
   const requestHeaders = url.searchParams.get("headers");
-  const viewportWidth = url.searchParams.get("viewportWidth") || "1280";
-  const viewportHeight = url.searchParams.get("viewportHeight") || "800";
+  const rawW = parseInt(url.searchParams.get("viewportWidth") || "1280", 10) || 1280;
+  const rawH = parseInt(url.searchParams.get("viewportHeight") || "800", 10) || 800;
+  // Bucket viewport to nearest 64px to preserve prompt prefix caching across subtle resizing
+  const viewportWidth = (Math.round(rawW / 64) * 64).toString();
+  const viewportHeight = (Math.round(rawH / 64) * 64).toString();
   const colorScheme = url.searchParams.get("colorScheme") || "light";
   const postData = url.searchParams.get("postData") || "";
   const isRefresh = url.searchParams.get("refresh") === "1";
@@ -63,10 +74,11 @@ export async function processHTML(req, res, url, textConfig) {
     headersObj.Referer ||
     "None (direct navigation)";
 
-  const acceptLanguage =
+  const rawAcceptLanguage =
     headersObj["accept-language"] ||
     headersObj["Accept-Language"] ||
     "en-US";
+  const acceptLanguage = rawAcceptLanguage.split(",")[0].trim() || "en-US";
 
   let timezone = "UTC";
   try {
@@ -127,15 +139,20 @@ export async function processHTML(req, res, url, textConfig) {
 
   console.log(`[html] Generating content for: ${requestUrl} [Lens: ${activeLens}]`);
   try {
-    const prompt = await generatePrompt("html", {
+    const linkContextObj = consumeLinkContext(requestUrl);
+    const linkContextStr = formatLinkContext(linkContextObj);
+    const siteProfileStr = getFormattedSiteProfile(requestUrl);
+
+    const structuredPrompt = await generateStructuredPrompt("html", {
       requestUrl,
       requestType,
-      requestHeaders,
       viewportWidth,
       viewportHeight,
       colorScheme,
       referer,
       postData: postData || "None",
+      linkContext: linkContextStr,
+      siteProfile: siteProfileStr,
       sessionHistory: getFormattedSessionHistory(),
       lensInstruction: getActiveLensInstruction(),
       acceptLanguage,
@@ -143,7 +160,16 @@ export async function processHTML(req, res, url, textConfig) {
       country,
     });
 
-    const response = streamText(textConfig, prompt);
+    const priorMessages = getNavigationThread(requestUrl);
+    const currentMessages = [
+      ...priorMessages,
+      { role: "user", content: structuredPrompt.prompt },
+    ];
+
+    const response = streamText(textConfig, {
+      system: structuredPrompt.system,
+      messages: currentMessages,
+    });
     const calc = costCalculator(textConfig.model, requestUrl, "text");
 
     const outputStream = processChunks(
@@ -167,6 +193,12 @@ export async function processHTML(req, res, url, textConfig) {
         method: postData ? "POST" : "GET",
         postData: postData || null,
       });
+
+      // Extract design DNA & media assets for domain coherence
+      extractAndSaveSiteProfile(requestUrl, fullHtml);
+
+      // Append immutable turn to navigation chat thread
+      appendNavigationTurn(requestUrl, structuredPrompt.prompt, fullHtml);
     }
 
     res.end();
