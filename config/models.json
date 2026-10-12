@@ -1,0 +1,232 @@
+{
+  "providers": {
+    "gemini": {
+      "aliases": ["gemini", "google"],
+      "normalizedName": "google",
+      "envKeys": ["GEMINI_API_KEY", "GOOGLE_API_KEY"],
+      "text": {
+        "defaultModel": "gemini-3.5-flash",
+        "choices": [
+          "gemini-flash-lite-latest",
+          "gemini-flash-latest",
+          "gemini-2.5-pro",
+          "gemini-2.5-flash",
+          "gemini-3-pro-preview",
+          "gemini-3-flash-preview",
+          "gemini-3.1-pro",
+          "gemini-3.1-flash-lite",
+          "gemini-3.5-flash"
+        ]
+      },
+      "image": {
+        "defaultModel": "gemini-2.5-flash-image",
+        "choices": ["gemini-2.5-flash-image"],
+        "supported": true
+      },
+      "video": {
+        "defaultModel": "veo-3.1-fast-generate-preview",
+        "choices": [
+          "veo-3.1-generate-001",
+          "veo-3.1-generate-preview",
+          "veo-3.1-fast-generate-001",
+          "veo-3.1-fast-generate-preview"
+        ],
+        "supported": true
+      },
+      "audio": {
+        "defaultModel": "gemini-2.5-flash",
+        "choices": ["gemini-2.5-flash"],
+        "supported": true
+      }
+    },
+    "openai": {
+      "aliases": ["openai"],
+      "normalizedName": "openai",
+      "envKeys": ["OPENAI_API_KEY"],
+      "text": {
+        "defaultModel": "gpt-5.5-instant",
+        "choices": [
+          "gpt-4-mini",
+          "gpt-5-nano",
+          "gpt-5-pro",
+          "gpt-5.4-nano",
+          "gpt-5.4-mini",
+          "gpt-5.4",
+          "gpt-5.5-instant",
+          "gpt-5.5"
+        ]
+      },
+      "image": {
+        "defaultModel": "dall-e-3",
+        "choices": ["dall-e-3", "dall-e-2"],
+        "supported": true
+      },
+      "video": {
+        "supported": false
+      },
+      "audio": {
+        "defaultModel": "tts-1",
+        "choices": ["tts-1", "tts-1-hd"],
+        "supported": true
+      }
+    },
+    "anthropic": {
+      "aliases": ["anthropic"],
+      "normalizedName": "anthropic",
+      "envKeys": ["ANTHROPIC_API_KEY"],
+      "text": {
+        "defaultModel": "claude-sonnet-4-6",
+        "choices": [
+          "claude-sonnet-4-0",
+          "claude-3-7-sonnet-latest",
+          "claude-3-opus-latest",
+          "claude-haiku-4-5",
+          "claude-sonnet-4-6",
+          "claude-opus-4-7"
+        ]
+      },
+      "image": {
+        "supported": false
+      },
+      "video": {
+        "supported": false
+      },
+      "audio": {
+        "supported": false
+      }
+    },
+    "groq": {
+      "aliases": ["groq"],
+      "normalizedName": "groq",
+      "envKeys": ["GROQ_API_KEY"],
+      "text": {
+        "defaultModel": "llama-3.3-70b-versatile",
+        "choices": [
+          "llama-3.1-8b-instant",
+          "llama-3.3-70b-versatile",
+          "llama-4-scout",
+          "qwen/qwen3-32b",
+          "openai/gpt-oss-120b",
+          "moonshotai/kimi-k2-instruct-0905",
+          "groq/compound"
+        ]
+      },
+      "image": {
+        "supported": false
+      },
+      "video": {
+        "supported": false
+      },
+      "audio": {
+        "supported": false
+      }
+    },
+    "synth": {
+      "aliases": ["synth", "procedural", "local"],
+      "normalizedName": "synth",
+      "envKeys": [],
+      "text": {
+        "supported": false
+      },
+      "image": {
+        "supported": false
+      },
+      "video": {
+        "supported": false
+      },
+      "audio": {
+        "defaultModel": "synth-wav",
+        "choices": [
+          "synth-wav",
+          "synth-chiptune",
+          "synth-ambient",
+          "synth-sfx",
+          "synth-music"
+        ],
+        "supported": true
+      }
+    }
+  },
+  "defaults": {
+    "textProvider": "gemini",
+    "imageProvider": "gemini",
+    "videoProvider": "gemini",
+    "audioProvider": "synth"
+  },
+  "modelAliases": {
+    "gemini-flash-lite-latest": "gemini-2.5-flash-lite",
+    "gemini-flash-latest": "gemini-2.5-flash"
+  },
+  "fallbackPricing": {
+    "gemini-3.5-flash": { "unit": "tokens", "input": 1.5, "output": 9.0 },
+    "gemini-3-flash-preview": { "unit": "tokens", "input": 1.5, "output": 9.0 },
+    "gemini-3.1-pro": { "unit": "tokens", "input": 2.0, "output": 12.0 },
+    "gemini-3-pro-preview": { "unit": "tokens", "input": 2.0, "output": 12.0 },
+    "gemini-3.1-flash-lite": { "unit": "tokens", "input": 0.25, "output": 1.5 },
+    "gemini-2.5-flash": { "unit": "tokens", "input": 0.15, "output": 0.6 },
+    "gemini-2.5-pro": { "unit": "tokens", "input": 1.25, "output": 5.0 },
+    "gemini-2.5-flash-image": { "unit": "tokens", "input": 0.3, "output": 30.0 },
+    "gemini-2.5-flash-image-preview": { "unit": "tokens", "input": 0.3, "output": 30.0 },
+    "gpt-5.5-instant": { "unit": "tokens", "input": 2.5, "output": 10.0 },
+    "gpt-5.5": { "unit": "tokens", "input": 3.0, "output": 12.0 },
+    "gpt-5.4": { "unit": "tokens", "input": 2.5, "output": 10.0 },
+    "gpt-5.4-mini": { "unit": "tokens", "input": 0.15, "output": 0.6 },
+    "gpt-5.4-nano": { "unit": "tokens", "input": 0.08, "output": 0.3 },
+    "gpt-4-mini": { "unit": "tokens", "input": 0.15, "output": 0.6 },
+    "claude-sonnet-4-6": { "unit": "tokens", "input": 3.0, "output": 15.0 },
+    "claude-3-7-sonnet-latest": { "unit": "tokens", "input": 3.0, "output": 15.0 },
+    "claude-haiku-4-5": { "unit": "tokens", "input": 0.8, "output": 4.0 },
+    "llama-3.3-70b-versatile": { "unit": "tokens", "input": 0.59, "output": 0.79 },
+    "llama-3.1-8b-instant": { "unit": "tokens", "input": 0.05, "output": 0.08 },
+    "dall-e-3": { "unit": "per_image", "input": 0.0, "output": 0.04 },
+    "dall-e-2": { "unit": "per_image", "input": 0.0, "output": 0.02 },
+    "tts-1": { "unit": "per_1k_chars", "input": 0.0, "output": 0.015 },
+    "tts-1-hd": { "unit": "per_1k_chars", "input": 0.0, "output": 0.030 },
+    "veo-": { "unit": "per_second", "input": 0.0, "output": 0.40 },
+    "synth-": { "unit": "per_second", "input": 0.0, "output": 0.0 }
+  },
+  "lenses": {
+    "modern": {
+      "id": "modern",
+      "name": "Modern Web",
+      "description": "Current modern responsive web standards with clean typography and semantic HTML",
+      "prompt": "Design with contemporary web aesthetics: responsive flexbox/grid layout, modern sans-serif typography, clean whitespace, accessible contrasts, subtle box shadows, rounded corners, and modern CSS variables."
+    },
+    "geocities-1997": {
+      "id": "geocities-1997",
+      "name": "1997 GeoCities / Web 1.0",
+      "description": "HTML tables, bright neon colors, marquee banners, tiled backgrounds, and retro GIFs",
+      "prompt": "AESTHETIC LENS - YEAR 1997 GEOCITIES: You MUST design this page as if built in 1997! Use table-based layouts, <marquee> or <blink> tags, vibrant/clashing retro web-safe colors (#FF00FF, #00FFFF, #FFFF00), comic sans or times new roman fonts, beveled button borders, 'Under Construction' banners, hit counters, and nostalgic 90s web culture. Use sound effects or chiptune audio loops where appropriate."
+    },
+    "web2-2007": {
+      "id": "web2-2007",
+      "name": "2007 Frutiger Aero / Web 2.0",
+      "description": "Glossy pill buttons, reflections, gradients, aqua bubbles, and skeuomorphism",
+      "prompt": "AESTHETIC LENS - YEAR 2007 FRUTIGER AERO / WEB 2.0: Design with high-gloss 2007 web aesthetics! Use rich gradients, skeuomorphic glass and water textures, glossy pill-shaped buttons with specular reflections, drop shadows, Lucida Grande/Tahoma fonts, badge ribbons, and bright cheerful blue/aqua/green palettes."
+    },
+    "cyberpunk-2077": {
+      "id": "cyberpunk-2077",
+      "name": "2077 Cyberpunk Net",
+      "description": "Dark high-tech interface, CRT scanlines, neon magenta/cyan, and glitch terminals",
+      "prompt": "AESTHETIC LENS - YEAR 2077 CYBERPUNK NET: Design as a futuristic hacker terminal/net interface! Dark pitch-black background (#05050a), neon cyan (#00f3ff) and hot magenta (#ff0055) accents, monospace/orbitron fonts, subtle CRT scanline overlays via CSS linear-gradients, angular cut-out UI borders (clip-path: polygon), status telemetry grids, and ambient synth/digital hum audio."
+    },
+    "solarpunk-2040": {
+      "id": "solarpunk-2040",
+      "name": "2040 Solarpunk",
+      "description": "Eco-futuristic, stained glass, organic art nouveau curves, and warm sunshine palettes",
+      "prompt": "AESTHETIC LENS - YEAR 2040 SOLARPUNK: Design as an eco-optimistic future web! Organic flowing curves, Art Nouveau inspired ornamentation, warm greens, golds, terracotta, and soft ivory backgrounds. Warm clean typography, plant motifs, solar/wind telemetry widgets, and tranquil ambient nature/wind chime audio."
+    },
+    "noir-1940s": {
+      "id": "noir-1940s",
+      "name": "1940s Noir Newspaper",
+      "description": "Monochrome newsprint, dramatic high-contrast serif headlines, and vintage paper textures",
+      "prompt": "AESTHETIC LENS - 1940s NOIR NEWSPAPER: Design as a 1940s vintage broadsheet newspaper! Grayscale/sepia palette (#f4ecd8 paper tone, #1a1a1a ink), multi-column newspaper layout, bold dramatic serif headlines (Playfair/Times), etched line dividers, date stamps, typewriter subheads, and subtle crackling gramophone or jazz radio audio."
+    },
+    "custom": {
+      "id": "custom",
+      "name": "Custom World Prompt",
+      "description": "User-defined custom aesthetic and world-building prompt",
+      "prompt": ""
+    }
+  }
+}

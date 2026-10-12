@@ -1,0 +1,351 @@
+:root {
+  --bg-main: #0f1019;
+  --bg-card: #181926;
+  --bg-input: #222336;
+  --border: #2c2e47;
+  --text-main: #f0f2fa;
+  --text-muted: #8b8ea8;
+  --primary: #5c7cfa;
+  --primary-hover: #4c6ef5;
+  --accent-pink: #ff8b94;
+  --accent-green: #51cf66;
+  --accent-amber: #fcc419;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  width: 380px;
+  max-height: 580px;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  line-height: 1.4;
+  overflow-y: auto;
+  user-select: none;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-main);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+.panel {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.header-left {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.logo {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  background: linear-gradient(90deg, #ff8b94, #a8e6cf, #70a1ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.version-tag {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.total-badge {
+  background: #1c2333;
+  border: 1px solid #334e68;
+  color: #79c0ff;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-family: "SF Mono", Monaco, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Action Bar */
+.action-bar {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 6px;
+}
+
+.btn {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: white;
+}
+.btn-primary:hover {
+  background: var(--primary-hover);
+}
+
+.btn-secondary {
+  background: var(--bg-card);
+  color: var(--text-main);
+  border-color: var(--border);
+}
+.btn-secondary:hover {
+  background: var(--bg-input);
+  border-color: #3f4263;
+}
+
+.btn-save {
+  margin-top: 8px;
+  width: 100%;
+  background: #25283d;
+  color: #c5c8e6;
+  border-color: #3b3f5e;
+}
+.btn-save:hover {
+  background: #333754;
+  color: white;
+}
+
+.status-banner {
+  padding: 6px 10px;
+  border-radius: 5px;
+  font-size: 11px;
+  background: #1e3328;
+  color: #7ee787;
+  border: 1px solid #238636;
+}
+.status-banner.hidden {
+  display: none;
+}
+
+/* Sections */
+.section {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+
+.section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #d1d5ed;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.section-hint {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* Inputs */
+.select-input, .text-input, .textarea-input, .select-input-sm {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.select-input:focus, .text-input:focus, .textarea-input:focus {
+  border-color: var(--primary);
+}
+
+.textarea-input {
+  margin-top: 6px;
+  resize: vertical;
+  font-family: inherit;
+}
+.textarea-input.hidden {
+  display: none;
+}
+
+/* Config Grid */
+.config-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.config-row {
+  display: grid;
+  grid-template-columns: 85px 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+.config-label {
+  font-size: 11px;
+  color: var(--text-main);
+  font-weight: 500;
+}
+
+/* Toggle Switch */
+.toggle-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.toggle-container input {
+  display: none;
+}
+
+.toggle-slider {
+  width: 26px;
+  height: 14px;
+  background-color: #3b3d54;
+  border-radius: 14px;
+  position: relative;
+  transition: background-color 0.2s;
+}
+
+.toggle-slider::before {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: white;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.2s;
+}
+
+.toggle-container input:checked + .toggle-slider {
+  background-color: var(--primary);
+}
+
+.toggle-container input:checked + .toggle-slider::before {
+  transform: translateX(12px);
+}
+
+/* Metrics Grid */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.metric-card {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 4px;
+  text-align: center;
+}
+
+.metric-title {
+  display: block;
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.metric-value {
+  font-size: 11px;
+  font-weight: 600;
+  font-family: "SF Mono", Monaco, Consolas, monospace;
+  color: #79c0ff;
+}
+
+/* Requests List */
+.requests-list {
+  max-height: 150px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.req-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-input);
+  padding: 5px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+}
+
+.req-badge {
+  font-size: 9px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.badge-text { background: #1f2d4d; color: #79c0ff; }
+.badge-image { background: #3b2a47; color: #d2a8ff; }
+.badge-video { background: #402830; color: #ff7b72; }
+.badge-audio { background: #1e3833; color: #7ee787; }
+
+.req-url {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-main);
+}
+
+.req-cost {
+  font-family: "SF Mono", Monaco, Consolas, monospace;
+  font-size: 10px;
+  color: #a5d6ff;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.empty-state {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 11px;
+  padding: 14px;
+}

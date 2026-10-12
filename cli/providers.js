@@ -2,7 +2,7 @@
  * Provider utility functions
  */
 
-import { getProviderConfig } from "../config/providers.js";
+import { getProviderConfig, DEFAULT_AUDIO_PROVIDER } from "../config/providers.js";
 
 /**
  * Normalize provider name to internal key (handles aliases)
@@ -18,7 +18,7 @@ export function normalizeProvider(providerName) {
 export function resolveApiKey(provider) {
   const config = getProviderConfig(provider);
 
-  if (!config?.envKeys) {
+  if (!config?.envKeys || config.envKeys.length === 0) {
     return undefined;
   }
 
@@ -34,53 +34,59 @@ export function resolveApiKey(provider) {
 }
 
 /**
- * Validate required API keys and exit if missing
+ * Validate required API keys gracefully
  */
 export function validateApiKeys(providers, argv) {
-  const { text, image, video } = providers;
+  const { text, image, video, audio } = providers;
 
   const textApiKey = argv["api-key"] || resolveApiKey(text);
   const imageApiKey = argv["image-api-key"] || resolveApiKey(image);
   const videoApiKey = argv["video-api-key"] || resolveApiKey(video);
+  const audioApiKey = argv["audio-api-key"] || resolveApiKey(audio);
 
   if (!textApiKey) {
-    console.warn(
-      `No API key found for text provider '${text}'. Set via --api-key or environment variable.`
+    console.error(
+      `[error] No API key found for text provider '${text}'. Set via --api-key or environment variable.`
     );
     process.exit(1);
   }
 
-  if (!imageApiKey) {
+  if (argv.images !== false && image !== "synth" && !imageApiKey) {
     console.warn(
-      `No API key found for image provider '${image}'. Set via --image-api-key or environment variable.`
+      `[warn] No API key found for image provider '${image}'. Image requests will render styled fallback placeholders.`
     );
-    process.exit(1);
   }
 
-  if (!videoApiKey) {
+  if (argv.video !== false && video !== "synth" && !videoApiKey) {
     console.warn(
-      `No API key found for video provider '${video}'. Set via --video-api-key or environment variable.`
+      `[warn] No API key found for video provider '${video}'. Video requests will render fallback media.`
     );
-    process.exit(1);
   }
 
-  return { textApiKey, imageApiKey, videoApiKey };
+  if (argv.audio !== false && audio !== "synth" && !audioApiKey) {
+    console.warn(
+      `[warn] No API key found for audio provider '${audio}'. Audio requests will gracefully use procedural WAV synthesizer.`
+    );
+  }
+
+  return { textApiKey, imageApiKey, videoApiKey, audioApiKey };
 }
 
 /**
- * Get provider defaults for image/video based on text provider
+ * Get provider defaults for text, image, video, and audio based on text provider
  */
 export function getProviderDefaults(textProviderName) {
-  const textConfig = getProviderConfig(textProviderName);
+  const textConfig = getProviderConfig(textProviderName) || getProviderConfig("gemini");
   const geminiConfig = getProviderConfig("gemini");
+  const synthConfig = getProviderConfig("synth");
 
   return {
     text: {
       provider: textConfig.normalizedName,
-      defaultModel: textConfig.text.defaultModel,
-      choices: textConfig.text.choices,
+      defaultModel: textConfig.text?.defaultModel || "gemini-3.5-flash",
+      choices: textConfig.text?.choices || [],
     },
-    image: textConfig.image.supported
+    image: textConfig.image?.supported
       ? {
           provider: textConfig.key,
           defaultModel: textConfig.image.defaultModel,
@@ -88,10 +94,10 @@ export function getProviderDefaults(textProviderName) {
         }
       : {
           provider: geminiConfig.key,
-          defaultModel: geminiConfig.image.defaultModel,
-          choices: geminiConfig.image.choices,
+          defaultModel: geminiConfig.image?.defaultModel,
+          choices: geminiConfig.image?.choices,
         },
-    video: textConfig.video.supported
+    video: textConfig.video?.supported
       ? {
           provider: textConfig.key,
           defaultModel: textConfig.video.defaultModel,
@@ -99,8 +105,19 @@ export function getProviderDefaults(textProviderName) {
         }
       : {
           provider: geminiConfig.key,
-          defaultModel: geminiConfig.video.defaultModel,
-          choices: geminiConfig.video.choices,
+          defaultModel: geminiConfig.video?.defaultModel,
+          choices: geminiConfig.video?.choices,
+        },
+    audio: textConfig.audio?.supported
+      ? {
+          provider: textConfig.key,
+          defaultModel: textConfig.audio.defaultModel,
+          choices: textConfig.audio.choices,
+        }
+      : {
+          provider: DEFAULT_AUDIO_PROVIDER || "synth",
+          defaultModel: synthConfig?.audio?.defaultModel || "synth-wav",
+          choices: synthConfig?.audio?.choices || ["synth-wav"],
         },
   };
 }

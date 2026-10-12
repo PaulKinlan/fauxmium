@@ -8,6 +8,7 @@ import {
   textModelOptions,
   imageOptions,
   videoOptions,
+  audioOptions,
 } from "./options.js";
 import {
   normalizeProvider,
@@ -29,9 +30,12 @@ async function run(textProviderName, argv) {
   const videoProvider = normalizeProvider(
     argv["video-provider"] || textProviderName
   );
+  const audioProvider = normalizeProvider(
+    argv["audio-provider"] || "synth"
+  );
 
-  const { textApiKey, imageApiKey, videoApiKey } = validateApiKeys(
-    { text: textProvider, image: imageProvider, video: videoProvider },
+  const { textApiKey, imageApiKey, videoApiKey, audioApiKey } = validateApiKeys(
+    { text: textProvider, image: imageProvider, video: videoProvider, audio: audioProvider },
     argv
   );
 
@@ -42,46 +46,66 @@ async function run(textProviderName, argv) {
   const textGenerationModel = argv.model;
   const imageGenerationModel = argv["image-model"];
   const videoGenerationModel = argv["video-model"];
+  const audioGenerationModel = argv["audio-model"];
 
-  console.log(`Starting server on http://${hostname}:${port}`);
-  console.log(
-    `Using text provider: ${textProvider}, model: ${textGenerationModel}`
-  );
-  console.log(
-    `Using image provider: ${imageProvider}, model: ${imageGenerationModel}`
-  );
-  console.log(
-    `Using video provider: ${videoProvider}, model: ${videoGenerationModel}`
-  );
+  const activeLens = argv.lens || "modern";
+  const customLensPrompt = argv["custom-lens"] || "";
+
+  console.log(`Starting Fauxmium server on http://${hostname}:${port}`);
+  console.log(`Browsing Lens: [${activeLens}]`);
+  console.log(`Text provider: ${textProvider}, model: ${textGenerationModel}`);
+  console.log(`Image provider: ${imageProvider}, model: ${imageGenerationModel} (enabled: ${argv.images !== false})`);
+  console.log(`Video provider: ${videoProvider}, model: ${videoGenerationModel} (enabled: ${argv.video !== false})`);
+  console.log(`Audio provider: ${audioProvider}, model: ${audioGenerationModel} (enabled: ${argv.audio !== false})`);
 
   if (!argv.verbose) {
     console.log(
-      `\n💡 Tip: Run Fauxmium with the --verbose flag to see the exact prompts sent to the LLM and stream response outputs in real-time!`
+      `\n💡 Tip: Run Fauxmium with --verbose to view raw prompts and streaming chunks in real-time!`
     );
   }
 
   await startServer(
     hostname,
     port,
-    { provider: textProvider, apiKey: textApiKey, model: textGenerationModel, verbose: argv.verbose },
+    {
+      provider: textProvider,
+      apiKey: textApiKey,
+      model: textGenerationModel,
+      verbose: argv.verbose,
+    },
     {
       provider: imageProvider,
       apiKey: imageApiKey,
       model: imageGenerationModel,
+      enabled: argv.images !== false,
       verbose: argv.verbose,
     },
     {
       provider: videoProvider,
       apiKey: videoApiKey,
       model: videoGenerationModel,
+      enabled: argv.video !== false,
       verbose: argv.verbose,
+    },
+    {
+      provider: audioProvider,
+      apiKey: audioApiKey,
+      model: audioGenerationModel,
+      enabled: argv.audio !== false,
+      verbose: argv.verbose,
+    },
+    {
+      activeLens,
+      customLensPrompt,
+      syncModels: Boolean(argv["sync-models"]),
     }
   );
+
   startBrowser(hostname, port, enableDevTools);
 }
 
 /**
- * Build a provider command (e.g., 'gemini', 'openai', 'anthropic')
+ * Build a provider command (e.g., 'gemini', 'openai', 'anthropic', 'groq')
  */
 export function buildProviderCommand(providerName, description) {
   const config = getProviderConfig(providerName);
@@ -100,14 +124,18 @@ export function buildProviderCommand(providerName, description) {
         defaultProvider: defaults.image.provider || "gemini",
         defaultModel: defaults.image.defaultModel,
         choices: defaults.image.choices,
-        supportedProviders: getProvidersWithFeature("image"),
       });
 
       yy = videoOptions(yy, {
         defaultProvider: defaults.video.provider || "gemini",
         defaultModel: defaults.video.defaultModel,
         choices: defaults.video.choices,
-        supportedProviders: getProvidersWithFeature("video"),
+      });
+
+      yy = audioOptions(yy, {
+        defaultProvider: defaults.audio.provider || "synth",
+        defaultModel: defaults.audio.defaultModel,
+        choices: defaults.audio.choices,
       });
 
       yy = keyOptions(yy);
@@ -116,14 +144,12 @@ export function buildProviderCommand(providerName, description) {
       // Add 'images' subcommand
       yy = yy.command({
         command: "images [provider]",
-        describe:
-          "Configure image generation provider and model (defaults to this command's provider)",
+        describe: "Configure image generation provider and model",
         builder: (z) =>
           imageOptions(z, {
             defaultProvider: defaults.image.provider || "gemini",
             defaultModel: defaults.image.defaultModel,
             choices: defaults.image.choices,
-            supportedProviders: getProvidersWithFeature("image"),
           }),
         handler: (argv) => run(config.aliases[0], argv),
       });
@@ -131,14 +157,25 @@ export function buildProviderCommand(providerName, description) {
       // Add 'videos' subcommand
       yy = yy.command({
         command: "videos [provider]",
-        describe:
-          "Configure video generation provider and model (defaults to this command's provider)",
+        describe: "Configure video generation provider and model",
         builder: (z) =>
           videoOptions(z, {
             defaultProvider: defaults.video.provider || "gemini",
             defaultModel: defaults.video.defaultModel,
             choices: defaults.video.choices,
-            supportedProviders: getProvidersWithFeature("video"),
+          }),
+        handler: (argv) => run(config.aliases[0], argv),
+      });
+
+      // Add 'audio' subcommand
+      yy = yy.command({
+        command: "audio [provider]",
+        describe: "Configure audio generation provider and model",
+        builder: (z) =>
+          audioOptions(z, {
+            defaultProvider: defaults.audio.provider || "synth",
+            defaultModel: defaults.audio.defaultModel,
+            choices: defaults.audio.choices,
           }),
         handler: (argv) => run(config.aliases[0], argv),
       });
@@ -161,9 +198,8 @@ export function buildImageProviderCommand(providerName, description) {
     builder: (y) => {
       let yy = imageOptions(y, {
         defaultProvider: providerName,
-        defaultModel: config.image.defaultModel,
-        choices: config.image.choices,
-        supportedProviders: getProvidersWithFeature("image"),
+        defaultModel: config.image?.defaultModel,
+        choices: config.image?.choices,
       });
 
       yy = keyOptions(yy);
@@ -172,16 +208,14 @@ export function buildImageProviderCommand(providerName, description) {
       return yy;
     },
     handler: (argv) => {
-      // Force the image provider to this command's provider
       argv["image-provider"] = providerName;
-      // Keep text provider defaulting to Gemini
       return run("gemini", argv);
     },
   };
 }
 
 /**
- * Build video-specific provider command (for 'videos gemini' etc)
+ * Build video-specific provider command (for 'video gemini' etc)
  */
 export function buildVideoProviderCommand(providerName, description) {
   const config = getProviderConfig(providerName);
@@ -192,9 +226,8 @@ export function buildVideoProviderCommand(providerName, description) {
     builder: (y) => {
       let yy = videoOptions(y, {
         defaultProvider: providerName,
-        defaultModel: config.video.defaultModel,
-        choices: config.video.choices,
-        supportedProviders: getProvidersWithFeature("video"),
+        defaultModel: config.video?.defaultModel,
+        choices: config.video?.choices,
       });
 
       yy = keyOptions(yy);
@@ -203,9 +236,35 @@ export function buildVideoProviderCommand(providerName, description) {
       return yy;
     },
     handler: (argv) => {
-      // Force the video provider to this command's provider
       argv["video-provider"] = providerName;
-      // Keep text provider defaulting to Gemini
+      return run("gemini", argv);
+    },
+  };
+}
+
+/**
+ * Build audio-specific provider command (for 'audio synth' etc)
+ */
+export function buildAudioProviderCommand(providerName, description) {
+  const config = getProviderConfig(providerName);
+
+  return {
+    command: config.aliases,
+    describe: description,
+    builder: (y) => {
+      let yy = audioOptions(y, {
+        defaultProvider: providerName,
+        defaultModel: config.audio?.defaultModel,
+        choices: config.audio?.choices,
+      });
+
+      yy = keyOptions(yy);
+      yy = commonNetOptions(yy);
+
+      return yy;
+    },
+    handler: (argv) => {
+      argv["audio-provider"] = providerName;
       return run("gemini", argv);
     },
   };
@@ -230,14 +289,18 @@ export function buildDefaultCommand(defaultProvider) {
         defaultProvider: defaults.image.provider || "gemini",
         defaultModel: defaults.image.defaultModel,
         choices: defaults.image.choices,
-        supportedProviders: getProvidersWithFeature("image"),
       });
 
       yy = videoOptions(yy, {
         defaultProvider: defaults.video.provider || "gemini",
         defaultModel: defaults.video.defaultModel,
         choices: defaults.video.choices,
-        supportedProviders: getProvidersWithFeature("video"),
+      });
+
+      yy = audioOptions(yy, {
+        defaultProvider: defaults.audio.provider || "synth",
+        defaultModel: defaults.audio.defaultModel,
+        choices: defaults.audio.choices,
       });
 
       yy = keyOptions(yy);

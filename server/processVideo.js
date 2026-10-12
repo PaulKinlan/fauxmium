@@ -1,51 +1,75 @@
 import { generatePrompt } from "../lib/prompts.js";
 import { generateVideo } from "../lib/aiAdapter.js";
 import { costCalculator } from "../lib/costCalculator.js";
-import { waitForCachedImage } from "../lib/imageCache.js";
+import {
+  waitForCachedImage,
+  cacheVideo,
+  getCachedVideo,
+  normalizeCacheKey,
+} from "../lib/imageCache.js";
+import { serveMediaBuffer } from "../lib/rangeResponse.js";
+import { FALLBACK_MP4_BUFFER } from "../lib/fallbackMedia.js";
 
-export async function processVideo(res, url, VideoConfig) {
-  const requestUrl = url.searchParams.get("url");
-  const newUrl = new URL(requestUrl);
-  const description = newUrl.searchParams.get("description");
-  const posterUrl = new URL(encodeURI(newUrl.searchParams.get("poster")));
+export async function processVideo(req, res, url, VideoConfig) {
+  const requestUrl = url.searchParams.get("url") || "";
 
-  const contentType = "video/mp4";
-  res.setHeader("Content-Type", contentType);
+  let newUrl;
+  try {
+    newUrl = new URL(requestUrl);
+  } catch {
+    newUrl = new URL("http://placeholder.local/video.mp4");
+  }
 
-  console.log(
-    `Video request for URL: ${requestUrl}
-  with description: ${description}
-  poster: ${posterUrl}`
-  );
-  console.log(`Server generating Video for: ${requestUrl}`);
+  const description = newUrl.searchParams.get("description") || "";
+  const cacheKey = normalizeCacheKey(requestUrl);
+
+  // Safe poster URL parsing
+  const posterParam = newUrl.searchParams.get("poster");
+  let posterUrl = null;
+  if (posterParam) {
+    try {
+      posterUrl = new URL(posterParam, requestUrl);
+    } catch {
+      posterUrl = null;
+    }
+  }
+
+  // 1. Check if video generation is disabled
+  if (VideoConfig?.enabled === false) {
+    console.log(`[video] Video generation disabled, serving fallback MP4 for: ${requestUrl}`);
+    serveMediaBuffer(req, res, FALLBACK_MP4_BUFFER, "video/mp4");
+    return;
+  }
+
+  // 2. Check Video Cache
+  const cachedVideo = getCachedVideo(cacheKey) || getCachedVideo(requestUrl);
+  if (cachedVideo) {
+    console.log(`[video] Serving cached video for: ${requestUrl}`);
+    const cost = costCalculator(VideoConfig.model, requestUrl, "video");
+    cost({ cached: true, END: true });
+    serveMediaBuffer(req, res, cachedVideo.buffer, cachedVideo.mimeType);
+    return;
+  }
+
+  console.log(`[video] Video request for URL: ${requestUrl}, description: ${description}`);
+
   try {
     const prompt = await generatePrompt("video", {
       description: description || requestUrl,
     });
 
-    // Wait for cached poster image if provided
+    // Check for cached poster image (or await active in-flight poster image generation)
     let posterImageData = null;
     if (posterUrl) {
-      posterUrl.search = ""; // strip any params
-      posterUrl.hash = ""; // strip any hash
-      const posterUrlString = posterUrl.toString();
-      console.log(`Waiting for cached poster image: ${posterUrlString}`);
+      const posterUrlString = normalizeCacheKey(posterUrl.toString());
+      console.log(`[video] Awaiting cached/pending poster image: ${posterUrlString}`);
 
-      // Wait up to 30 seconds for the poster image to be generated and cached
-      const cachedImage = await waitForCachedImage(
-        posterUrlString,
-        30000,
-        1000
-      );
-
+      const cachedImage = await waitForCachedImage(posterUrlString, 8000, 250);
       if (cachedImage) {
         posterImageData = cachedImage;
-        console.log(`Using cached poster image (${cachedImage.mimeType})`);
+        console.log(`[video] Using poster image (${cachedImage.mimeType})`);
       } else {
-        console.warn(
-          `Poster image not found in cache after timeout: ${posterUrl}`
-        );
-        console.warn(`Video will be generated without poster reference`);
+        console.log(`[video] No poster image found in time; proceeding without poster reference`);
       }
     }
 
@@ -57,41 +81,26 @@ export async function processVideo(res, url, VideoConfig) {
 
     const binaryData = Buffer.from(base64Data, "base64");
 
-    const cost = costCalculator(VideoConfig.model, requestUrl);
-    // // https://ai.google.dev/gemini-api/docs/pricing#gemini-2.5-flash-Video-preview 1290 tokens = $0.000387
+    // Cache the video
+    cacheVideo(cacheKey, {
+      buffer: binaryData,
+      mimeType: mimeType || "video/mp4",
+    });
+
+    const cost = costCalculator(VideoConfig.model, requestUrl, "video");
     const usage = {
-      inputTokens: 0,
+      durationSeconds: 8,
       outputTokens: 8,
+      totalTokens: 8,
     };
-    const costResult = cost({ usage, END: true });
+    cost({ usage, END: true });
 
-    console.log(
-      `Video generated for ${requestUrl} with cost: $${costResult.cost.toFixed(
-        6
-      )}`
-    );
-    // Return binary data with proper content type
-    res.setHeader("Content-Type", mimeType);
-    res.setHeader(
-      "Content-Length",
-      binaryData.length.toString()
-    );
-    res.end(binaryData);
+    console.log(`[video] Video generated successfully for ${requestUrl}`);
+    serveMediaBuffer(req, res, binaryData, mimeType || "video/mp4");
   } catch (e) {
-    console.error(`Failed to generate Video for ${requestUrl}:`);
-    console.error("error name: ", e.name);
-    console.error("error message: ", e.message);
-    console.error("error status: ", e.status);
+    console.error(`[video] Failed to generate video for ${requestUrl}:`, e.message);
 
-    // Fallback: transparent 1x1 PNG so the page still renders an Video
-    // Base64 of a 1x1 transparent PNG
-    const placeholderBase64 =
-      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=";
-    const binaryData = Buffer.from(placeholderBase64, "base64");
-
-    res.statusCode = 200;
-    res.setHeader("Content-Type", "Video/png");
-    res.setHeader("Content-Length", binaryData.length.toString());
-    res.end(binaryData);
+    // Serve valid minimal MP4 so player doesn't crash or display broken icon
+    serveMediaBuffer(req, res, FALLBACK_MP4_BUFFER, "video/mp4");
   }
 }

@@ -1,38 +1,137 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-  <title>Fauxmium Cost</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      min-width: 300px;
-      max-width: 600px;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    th,
-    td {
-      border: 1px solid #ddd;
-      padding: 8px;
-      text-align: left;
-      word-break: break-all;
-    }
-
-    th {
-      background-color: #f2f2f2;
-    }
-  </style>
+  <meta charset="UTF-8">
+  <title>Fauxmium Control Panel</title>
+  <link rel="stylesheet" href="popup.css">
 </head>
-
 <body>
-  <h1>Fauxmium Session Cost</h1>
-  <div id="cost-container"></div>
+  <div class="panel">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <h1 class="logo">Fauxmium</h1>
+        <span class="version-tag">AI Web</span>
+      </div>
+      <div class="header-right">
+        <div class="total-badge" id="total-cost">$0.000000</div>
+      </div>
+    </header>
+
+    <!-- Quick Action Bar -->
+    <div class="action-bar">
+      <button id="btn-reload" class="btn btn-primary" title="Bypass cache and regenerate active tab">↻ Regenerate Tab</button>
+      <button id="btn-clear-cache" class="btn btn-secondary" title="Flush HTML, Image, Video, and Audio cache">Clear Cache</button>
+      <button id="btn-reset-costs" class="btn btn-secondary" title="Reset session spending logs">Reset Costs</button>
+    </div>
+
+    <!-- Status Message Banner -->
+    <div id="status-banner" class="status-banner hidden"></div>
+
+    <!-- Section: Browsing Lens -->
+    <section class="section">
+      <div class="section-header">
+        <label for="lens-select" class="section-title">Browsing Lens</label>
+        <span class="section-hint">Simulate different eras & worlds</span>
+      </div>
+      <select id="lens-select" class="select-input">
+        <option value="modern">Modern Web (Responsive & Clean)</option>
+        <option value="geocities-1997">1997 GeoCities / Web 1.0</option>
+        <option value="web2-2007">2007 Frutiger Aero / Web 2.0</option>
+        <option value="cyberpunk-2077">2077 Cyberpunk Net</option>
+        <option value="solarpunk-2040">2040 Solarpunk</option>
+        <option value="noir-1940s">1940s Noir Broadsheet</option>
+        <option value="custom">Custom World Prompt...</option>
+      </select>
+      <textarea id="custom-lens-input" class="textarea-input hidden" rows="2" placeholder="Describe the world, aesthetic, or rules for generated pages..."></textarea>
+    </section>
+
+    <!-- Section: Media & Model Toggles -->
+    <section class="section">
+      <div class="section-header">
+        <span class="section-title">Generation Models & Media</span>
+      </div>
+
+      <div class="config-grid">
+        <!-- Text -->
+        <div class="config-row">
+          <span class="config-label">Text</span>
+          <input type="text" id="text-model-input" class="text-input" placeholder="gemini-3.5-flash">
+        </div>
+
+        <!-- Image -->
+        <div class="config-row">
+          <label class="toggle-container">
+            <input type="checkbox" id="image-enabled" checked>
+            <span class="toggle-slider"></span>
+            <span class="config-label">Images</span>
+          </label>
+          <input type="text" id="image-model-input" class="text-input" placeholder="gemini-2.5-flash-image">
+        </div>
+
+        <!-- Video -->
+        <div class="config-row">
+          <label class="toggle-container">
+            <input type="checkbox" id="video-enabled" checked>
+            <span class="toggle-slider"></span>
+            <span class="config-label">Videos</span>
+          </label>
+          <input type="text" id="video-model-input" class="text-input" placeholder="veo-3.1-fast-generate-preview">
+        </div>
+
+        <!-- Audio -->
+        <div class="config-row">
+          <label class="toggle-container">
+            <input type="checkbox" id="audio-enabled" checked>
+            <span class="toggle-slider"></span>
+            <span class="config-label">Audio</span>
+          </label>
+          <select id="audio-provider-select" class="select-input-sm">
+            <option value="synth">Synth (WAV $0)</option>
+            <option value="openai">OpenAI (TTS)</option>
+            <option value="gemini">Gemini</option>
+          </select>
+        </div>
+      </div>
+      <button id="btn-save-config" class="btn btn-save">Apply Settings</button>
+    </section>
+
+    <!-- Section: Spend Breakdown -->
+    <section class="section">
+      <div class="section-header">
+        <span class="section-title">Session Spend Breakdown</span>
+      </div>
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <span class="metric-title">Text</span>
+          <span class="metric-value" id="spend-text">$0.00</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-title">Images</span>
+          <span class="metric-value" id="spend-image">$0.00</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-title">Videos</span>
+          <span class="metric-value" id="spend-video">$0.00</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-title">Audio</span>
+          <span class="metric-value" id="spend-audio">$0.00</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section: Request Activity Log -->
+    <section class="section log-section">
+      <div class="section-header">
+        <span class="section-title">Recent Requests (<span id="req-count">0</span>)</span>
+      </div>
+      <div id="requests-list" class="requests-list">
+        <div class="empty-state">No requests recorded yet.</div>
+      </div>
+    </section>
+  </div>
+
   <script src="popup.js"></script>
 </body>
-
 </html>

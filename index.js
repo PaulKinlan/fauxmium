@@ -8,6 +8,7 @@ import {
   buildProviderCommand,
   buildImageProviderCommand,
   buildVideoProviderCommand,
+  buildAudioProviderCommand,
   buildDefaultCommand,
 } from "./cli/commands.js";
 import { PROVIDERS, DEFAULT_TEXT_PROVIDER } from "./config/providers.js";
@@ -29,7 +30,6 @@ yargs(hideBin(process.argv))
     command: "images",
     describe: "Image generation commands",
     builder: (y) => {
-      // Register image commands for providers that support images
       Object.entries(PROVIDERS).forEach(([key, config]) => {
         if (config.image?.supported) {
           y.command(
@@ -43,7 +43,7 @@ yargs(hideBin(process.argv))
 
       return y.demandCommand(
         1,
-        "You need to specify an image provider command (gemini)."
+        "You need to specify an image provider command (e.g. gemini, openai)."
       );
     },
     handler: () => {},
@@ -53,7 +53,6 @@ yargs(hideBin(process.argv))
     command: "video",
     describe: "Video generation commands",
     builder: (y) => {
-      // Register video commands for providers that support videos
       Object.entries(PROVIDERS).forEach(([key, config]) => {
         if (config.video?.supported) {
           y.command(
@@ -67,7 +66,30 @@ yargs(hideBin(process.argv))
 
       return y.demandCommand(
         1,
-        "You need to specify a video provider command (gemini)."
+        "You need to specify a video provider command (e.g. gemini)."
+      );
+    },
+    handler: () => {},
+  })
+  // Top-level 'audio' command with provider-specific subcommands
+  .command({
+    command: "audio",
+    describe: "Audio generation commands",
+    builder: (y) => {
+      Object.entries(PROVIDERS).forEach(([key, config]) => {
+        if (config.audio?.supported) {
+          y.command(
+            buildAudioProviderCommand(
+              key,
+              `Use ${key.charAt(0).toUpperCase() + key.slice(1)} for audio`
+            )
+          );
+        }
+      });
+
+      return y.demandCommand(
+        1,
+        "You need to specify an audio provider command (e.g. synth, openai, gemini)."
       );
     },
     handler: () => {},

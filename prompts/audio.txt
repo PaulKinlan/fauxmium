@@ -1,0 +1,2 @@
+Create audio matching the following description: ###description###
+Type: ###type###
