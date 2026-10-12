@@ -5,9 +5,12 @@
 - Display: ###viewportWidth###x###viewportHeight###px | Color Scheme: ###colorScheme###
 
 [SITE COHERENCE PROFILE - REUSE DESIGN & CACHED ASSETS]
+- Active Domain Session State (Auth / Search / Cart / Form State): ###domainState###
 ###siteProfile###
 
 [NAVIGATION & LINK INTENT - DYNAMIC]
+- Decomposed Route: Path=###pathname### | Query=###queryParams### | Hash=###hash###
+- Active Media Capabilities: ###mediaCapabilities###
 - Previous Page (Referrer): ###referer###
 - Submitted Form / POST Data: ###postData###
 - Link Intent & Item Context:

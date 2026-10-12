@@ -8,6 +8,7 @@ import {
 } from "../lib/imageCache.js";
 import { serveMediaBuffer } from "../lib/rangeResponse.js";
 import { synthesizeWav } from "../lib/audioSynth.js";
+import { sessionState, getActiveLensInstruction } from "../lib/sessionState.js";
 
 export async function processAudio(req, res, url, audioConfig) {
   const requestUrl = url.searchParams.get("url") || "";
@@ -20,8 +21,12 @@ export async function processAudio(req, res, url, audioConfig) {
   }
 
   const description = newUrl.searchParams.get("description") || "";
-  const type = newUrl.searchParams.get("type") || "music";
+  const transcript = newUrl.searchParams.get("transcript") || "";
+  const type = newUrl.searchParams.get("type") || (transcript ? "speech" : "music");
   const voice = newUrl.searchParams.get("voice") || "alloy";
+  const bpm = newUrl.searchParams.get("bpm") || "120";
+  const mood = newUrl.searchParams.get("mood") || "neutral";
+  const lens = sessionState.activeLens || "modern";
   const durationParam = newUrl.searchParams.get("duration");
   const durationSeconds = durationParam ? parseFloat(durationParam) : undefined;
 
@@ -51,6 +56,10 @@ export async function processAudio(req, res, url, audioConfig) {
     const prompt = await generatePrompt("audio", {
       description: description || requestUrl,
       type,
+      transcript,
+      bpm,
+      mood,
+      lensInstruction: getActiveLensInstruction() || "Standard audio aesthetic",
     });
 
     const { mimeType, buffer, usage } = await generateAudio(
@@ -58,9 +67,13 @@ export async function processAudio(req, res, url, audioConfig) {
       prompt,
       {
         description,
+        transcript,
         type,
         voice,
         durationSeconds,
+        bpm,
+        mood,
+        lens,
       }
     );
 
@@ -78,7 +91,7 @@ export async function processAudio(req, res, url, audioConfig) {
     console.error(`[audio] Failed to generate audio for ${requestUrl}:`, e.message);
 
     // Fallback to procedural WAV synthesizer
-    const fallback = synthesizeWav({ description, type, durationSeconds });
+    const fallback = synthesizeWav({ description, transcript, type, durationSeconds, bpm, mood, lens });
     serveMediaBuffer(req, res, fallback.buffer, fallback.mimeType);
   }
 }

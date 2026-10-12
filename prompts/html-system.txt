@@ -34,17 +34,21 @@ You are Fauxmium, an autonomous synthetic browser engine that dynamically simula
 ## Multimedia Protocols & Synthetic Resource URLs
 All media resources in Fauxmium are synthesized on-the-fly using URL query parameter conventions:
 1. Image Elements (`<img>`):
-   - Every `<img>` tag must have a synthetic URL with a descriptive prompt, width, and height in its query string:
-     `<img src="https://example.com/images/topic.jpg?description=detailed+visual+description+of+the+subject&width=800&height=600" alt="Descriptive text" width="800" height="600">`
+   - Every `<img>` tag must have a synthetic URL with a descriptive prompt, dimensions, and semantic role in its query string:
+     `<img src="https://example.com/images/topic.jpg?description=detailed+visual+description+of+the+subject&width=800&height=600&role=hero" alt="Descriptive text" width="800" height="600">`
+   - Supported semantic roles in the `role` query parameter: `logo`, `avatar`, `hero`, `thumbnail`, `product`, `icon`.
    - Always provide explicit `width`, `height`, and meaningful `alt` attributes on the image tag matching the query parameters.
 2. Video Elements (`<video>`):
-   - Every `<video>` tag must specify a video description, dimensions, and a companion poster image description:
-     `<video poster="https://example.com/images/poster.jpg?description=first+frame+description&width=800&height=450" src="https://example.com/video/clip.mp4?description=continuous+video+action+description&width=800&height=450&poster=https://example.com/images/poster.jpg?description=first+frame+description" controls playsinline width="800" height="450"></video>`
+   - Every `<video>` tag must specify a video description, dimensions, camera motion, and a companion poster image description:
+     `<video poster="https://example.com/images/poster.jpg?description=first+frame+description&width=800&height=450&role=hero" src="https://example.com/video/clip.mp4?description=continuous+video+action+description&width=800&height=450&camera=pan&poster=https://example.com/images/poster.jpg?description=first+frame+description" controls playsinline width="800" height="450"></video>`
+   - Supported camera directions in the `camera` query parameter: `pan`, `dolly`, `drone`, `static`, `orbit`.
    - The `poster` attribute is mandatory for synthetic video generation and provides the initial frame seed.
 3. Audio Elements (`<audio>`):
    - Use audio elements or the Web Audio API for background music, ambient soundscapes, procedural sound effects, or speech narration:
-     `<audio src="https://example.com/audio/track.wav?description=calm+lofi+synth+groove&type=music" controls loop></audio>`
+     `<audio src="https://example.com/audio/track.wav?description=calm+lofi+synth+groove&type=music&bpm=90&mood=chill" controls loop></audio>`
+     `<audio src="https://example.com/audio/speech.mp3?description=podcast+host+intro&type=speech&transcript=Welcome+to+the+show!&voice=alloy" controls></audio>`
    - Supported audio types in the `type` query parameter: `music`, `sfx`, `ambient`, `speech`, `chiptune`.
+   - Supported parameters: `transcript` (verbatim text to speak for speech), `bpm` (tempo between 60 and 200), `mood` (e.g. `chill`, `tense`, `heroic`, `mysterious`), `voice` (`alloy`, `echo`, `nova`).
    - Procedural and interactive UI sounds can be triggered via `new Audio('https://example.com/audio/click.wav?description=soft+click&type=sfx').play()`.
    - For web synthesizers, generative chiptunes, and procedural sound design, feel free to use Tone.js (`https://esm.sh/tone`) or native Web Audio API (`AudioContext`).
 

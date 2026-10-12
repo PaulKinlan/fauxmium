@@ -17,6 +17,7 @@ import {
   extractAndSaveSiteProfile,
   getNavigationThread,
   appendNavigationTurn,
+  updateAndGetDomainState,
 } from "../lib/siteMemory.js";
 
 export async function processHTML(req, res, url, textConfig) {
@@ -143,9 +144,47 @@ export async function processHTML(req, res, url, textConfig) {
     const linkContextStr = formatLinkContext(linkContextObj);
     const siteProfileStr = getFormattedSiteProfile(requestUrl);
 
+    // 1. Decomposed URL route semantics
+    let pathname = "/";
+    let queryParams = "None";
+    let hash = "None";
+    try {
+      const parsedReqUrl = new URL(requestUrl);
+      pathname = parsedReqUrl.pathname || "/";
+      const qPairs = [];
+      for (const [k, v] of parsedReqUrl.searchParams.entries()) {
+        qPairs.push(`${k}="${v}"`);
+      }
+      if (qPairs.length > 0) {
+        queryParams = qPairs.join(", ");
+      }
+      if (parsedReqUrl.hash) {
+        hash = parsedReqUrl.hash;
+      }
+    } catch {}
+
+    // 2. Active media toggle capabilities
+    const imgEnabled = sessionState.imageConfig?.enabled !== false;
+    const vidEnabled = sessionState.videoConfig?.enabled !== false;
+    const audEnabled = sessionState.audioConfig?.enabled !== false;
+    const caps = [
+      `Images: ${imgEnabled ? "ENABLED" : "DISABLED (Do NOT emit external <img> tags; use rich inline <svg> vector illustrations, CSS art, or <canvas> instead)"}`,
+      `Video: ${vidEnabled ? "ENABLED" : "DISABLED (Do NOT emit <video> tags; use animated inline <svg>, CSS animations, or <canvas> instead)"}`,
+      `Audio: ${audEnabled ? "ENABLED" : "DISABLED (Do NOT emit <audio> tags; use inline Web Audio API synthesis if sound is needed)"}`,
+    ];
+    const mediaCapabilities = caps.join("; ");
+
+    // 3. Domain session state (forms, auth, search, cart)
+    const domainState = updateAndGetDomainState(requestUrl, postData);
+
     const structuredPrompt = await generateStructuredPrompt("html", {
       requestUrl,
       requestType,
+      pathname,
+      queryParams,
+      hash,
+      mediaCapabilities,
+      domainState,
       viewportWidth,
       viewportHeight,
       colorScheme,

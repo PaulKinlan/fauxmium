@@ -1,1 +1,6 @@
-Create an video that is visually appealing matching the following description: ###description###
+Create a video that is visually appealing matching the following description: ###description###
+Dimensions: ###width###x###height###
+Aspect Ratio: ###aspectRatio###
+Camera / Cinematography Motion: ###camera###
+Starting Poster Frame Context: ###posterDescription### (animate smoothly from this visual composition)
+Aesthetic / Era Lens: ###lensInstruction###

@@ -1,3 +1,13 @@
 Create an image that is visually appealing matching the following description: ###description###
+Dimensions: ###width###x###height###
+Role & Framing: ###role### (Aspect Ratio: ###aspectRatio###)
+Site Brand Palette & Theme: ###siteColors### (Color Scheme: ###colorScheme###)
+Aesthetic / Era Lens: ###lensInstruction###
+
+Role Framing Guidance:
+- If role is "logo" or "icon": Generate a clean, crisp vector emblem or modern brand mark on a clean background with bold iconography and clear silhouette.
+- If role is "avatar" or portrait: Generate a well-composed headshot or character portrait badge, centered, with expressive personality.
+- If role is "hero" or "banner": Generate an expansive cinematic establishing composition with rich environmental depth and striking lighting.
+- If role is "thumbnail" or "product": Generate a focused foreground subject with subtle depth of field and clear lighting.
 
 If the description references a specific named real person, headshot, or portrait, generate a stylized artistic portrait, professional vector illustration, or avatar representing them rather than attempting photorealistic synthesis.

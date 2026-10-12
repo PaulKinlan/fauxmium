@@ -27,10 +27,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function showBanner(msg, isError = false) {
     statusBannerEl.textContent = msg;
-    statusBannerEl.classList.remove("hidden");
-    statusBannerEl.style.background = isError ? "#3d1e24" : "#1e3328";
-    statusBannerEl.style.color = isError ? "#ff8b94" : "#7ee787";
-    statusBannerEl.style.borderColor = isError ? "#f85149" : "#238636";
+    statusBannerEl.classList.remove("hidden", "status-error", "status-success");
+    statusBannerEl.classList.add(isError ? "status-error" : "status-success");
+    statusBannerEl.style.background = "";
+    statusBannerEl.style.color = "";
+    statusBannerEl.style.borderColor = "";
     setTimeout(() => {
       statusBannerEl.classList.add("hidden");
     }, 2800);
@@ -42,12 +43,74 @@ document.addEventListener("DOMContentLoaded", async () => {
   const port = storage.port || 3001;
   const baseUrl = `http://${hostname}:${port}`;
 
-  lensSelect.addEventListener("change", () => {
+  async function saveConfig({ silent = false } = {}) {
+    try {
+      const payload = {
+        activeLens: lensSelect.value,
+        customLensPrompt: customLensInput.value,
+        text: {
+          model: textModelInput.value.trim(),
+        },
+        image: {
+          enabled: imageEnabled.checked,
+          model: imageModelInput.value.trim(),
+        },
+        video: {
+          enabled: videoEnabled.checked,
+          model: videoModelInput.value.trim(),
+        },
+        audio: {
+          enabled: audioEnabled.checked,
+          provider: audioProviderSelect.value,
+        },
+      };
+
+      const res = await fetch(`${baseUrl}/config`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        if (!silent) showBanner("Configuration saved & active!");
+        return true;
+      } else {
+        if (!silent) showBanner("Failed to save config", true);
+        return false;
+      }
+    } catch (e) {
+      if (!silent) showBanner(`Error: ${e.message}`, true);
+      return false;
+    }
+  }
+
+  lensSelect.addEventListener("change", async () => {
     if (lensSelect.value === "custom") {
       customLensInput.classList.remove("hidden");
     } else {
       customLensInput.classList.add("hidden");
     }
+    await saveConfig();
+  });
+
+  customLensInput.addEventListener("blur", async () => {
+    await saveConfig({ silent: true });
+  });
+  customLensInput.addEventListener("change", async () => {
+    await saveConfig({ silent: true });
+  });
+
+  imageEnabled.addEventListener("change", async () => {
+    await saveConfig();
+  });
+  videoEnabled.addEventListener("change", async () => {
+    await saveConfig();
+  });
+  audioEnabled.addEventListener("change", async () => {
+    await saveConfig();
+  });
+  audioProviderSelect.addEventListener("change", async () => {
+    await saveConfig();
   });
 
   async function loadConfig() {
@@ -133,46 +196,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Button: Save & Apply Configuration
   btnSaveConfig.addEventListener("click", async () => {
-    try {
-      const payload = {
-        activeLens: lensSelect.value,
-        customLensPrompt: customLensInput.value,
-        text: {
-          model: textModelInput.value.trim(),
-        },
-        image: {
-          enabled: imageEnabled.checked,
-          model: imageModelInput.value.trim(),
-        },
-        video: {
-          enabled: videoEnabled.checked,
-          model: videoModelInput.value.trim(),
-        },
-        audio: {
-          enabled: audioEnabled.checked,
-          provider: audioProviderSelect.value,
-        },
-      };
-
-      const res = await fetch(`${baseUrl}/config`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (res.ok) {
-        showBanner("Configuration saved & active!");
-      } else {
-        showBanner("Failed to save config", true);
-      }
-    } catch (e) {
-      showBanner(`Error: ${e.message}`, true);
-    }
+    await saveConfig();
   });
 
   // Button: Regenerate Active Tab
   btnReload.addEventListener("click", async () => {
     try {
+      await saveConfig({ silent: true });
       const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
       if (tabs?.[0]?.id) {
         await chrome.tabs.reload(tabs[0].id, { bypassCache: true });
@@ -211,4 +241,73 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Initial load
   await loadConfig();
   await loadCosts();
+
+  // Dynamic Toolbar Icon Theme Adaptation
+  function renderCanvasIcon(ctx, size, isDark) {
+    ctx.clearRect(0, 0, size, size);
+    const center = size / 2;
+    const r = size * 0.42;
+
+    // High contrast outer ring
+    ctx.beginPath();
+    ctx.arc(center, center, r, 0, Math.PI * 2);
+    ctx.strokeStyle = isDark ? "#60a5fa" : "#2563eb";
+    ctx.lineWidth = Math.max(1.5, size * 0.1);
+    ctx.stroke();
+
+    // Accent arcs
+    ctx.beginPath();
+    ctx.arc(center, center, r, -Math.PI / 2, 0);
+    ctx.strokeStyle = "#10b981";
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(center, center, r, Math.PI, -Math.PI / 2);
+    ctx.strokeStyle = "#f43f5e";
+    ctx.stroke();
+
+    // Central diamond spark
+    ctx.beginPath();
+    ctx.moveTo(center, center - r * 0.65);
+    ctx.lineTo(center + r * 0.45, center);
+    ctx.lineTo(center, center + r * 0.65);
+    ctx.lineTo(center - r * 0.45, center);
+    ctx.closePath();
+    ctx.fillStyle = isDark ? "#ffffff" : "#1e293b";
+    ctx.fill();
+
+    // Center core dot
+    ctx.beginPath();
+    ctx.arc(center, center, Math.max(1, size * 0.08), 0, Math.PI * 2);
+    ctx.fillStyle = isDark ? "#2563eb" : "#ffffff";
+    ctx.fill();
+  }
+
+  function updateToolbarIcon(isDark) {
+    if (!chrome?.action?.setIcon) return;
+    try {
+      const canvas16 = document.createElement("canvas");
+      canvas16.width = 16;
+      canvas16.height = 16;
+      const ctx16 = canvas16.getContext("2d");
+      renderCanvasIcon(ctx16, 16, isDark);
+
+      const canvas32 = document.createElement("canvas");
+      canvas32.width = 32;
+      canvas32.height = 32;
+      const ctx32 = canvas32.getContext("2d");
+      renderCanvasIcon(ctx32, 32, isDark);
+
+      chrome.action.setIcon({
+        imageData: {
+          16: ctx16.getImageData(0, 0, 16, 16),
+          32: ctx32.getImageData(0, 0, 32, 32),
+        },
+      });
+    } catch (e) {}
+  }
+
+  const darkModeMedia = window.matchMedia("(prefers-color-scheme: dark)");
+  updateToolbarIcon(darkModeMedia.matches);
+  darkModeMedia.addEventListener("change", (e) => updateToolbarIcon(e.matches));
 });

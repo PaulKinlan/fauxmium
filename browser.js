@@ -8,8 +8,9 @@ import { recordLinkContext } from "./lib/siteMemory.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Track the active URL per page for coherent Referer headers
+// Track the active URL and preferred color scheme per page
 const pageUrlMap = new WeakMap();
+const pageColorSchemeMap = new WeakMap();
 
 function startBrowser(hostname, port, devtools) {
   (async () => {
@@ -78,7 +79,18 @@ function startBrowser(hostname, port, devtools) {
   async function injectProgressAndSkeletons(page) {
     try {
       try {
+        await page.exposeFunction("__fauxmiumUpdateColorScheme", (scheme) => {
+          if (scheme === "dark" || scheme === "light") {
+            pageColorSchemeMap.set(page, scheme);
+          }
+        });
+      } catch (err) {}
+
+      try {
         await page.exposeFunction("__fauxmiumCaptureClick", (ctx) => {
+          if (ctx?.colorScheme) {
+            pageColorSchemeMap.set(page, ctx.colorScheme);
+          }
           recordLinkContext(ctx);
         });
       } catch (err) {
@@ -142,6 +154,14 @@ function startBrowser(hostname, port, devtools) {
         mountUI();
         window.addEventListener("DOMContentLoaded", mountUI);
 
+        try {
+          const isDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+          window.__fauxmiumUpdateColorScheme?.(isDark ? "dark" : "light");
+          window.matchMedia?.("(prefers-color-scheme: dark)").addEventListener?.("change", (e) => {
+            window.__fauxmiumUpdateColorScheme?.(e.matches ? "dark" : "light");
+          });
+        } catch (e) {}
+
         window.addEventListener("click", (e) => {
           const a = e.target?.closest?.("a");
           if (a && a.href && !a.href.startsWith("#") && !a.href.startsWith("javascript:")) {
@@ -158,6 +178,7 @@ function startBrowser(hostname, port, devtools) {
                 cardTitle: (card.querySelector("h1, h2, h3, h4, [class*='title']")?.innerText || "").trim().slice(0, 200),
                 cardSnippet: (card.innerText || "").replace(/\s+/g, " ").trim().slice(0, 350),
                 cardImageSrc: (a.querySelector("img")?.src || card.querySelector("img")?.src || ""),
+                colorScheme: window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light",
               };
               window.__fauxmiumCaptureClick?.(payload);
             } catch (err) {}
@@ -241,7 +262,7 @@ function startBrowser(hostname, port, devtools) {
         return;
       }
 
-      let colorScheme = "light";
+      let colorScheme = pageColorSchemeMap.get(page) || "light";
       let viewportWidth = 1280;
       let viewportHeight = 800;
       const vp = page.viewport();

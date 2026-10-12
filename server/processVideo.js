@@ -9,6 +9,20 @@ import {
 } from "../lib/imageCache.js";
 import { serveMediaBuffer } from "../lib/rangeResponse.js";
 import { FALLBACK_MP4_BUFFER } from "../lib/fallbackMedia.js";
+import { getActiveLensInstruction } from "../lib/sessionState.js";
+
+function calculateAspectRatio(w, h) {
+  const width = parseFloat(w) || 1280;
+  const height = parseFloat(h) || 720;
+  if (height === 0) return "16:9 (Widescreen)";
+  const ratio = width / height;
+  if (ratio >= 0.9 && ratio <= 1.1) return "1:1 (Square)";
+  if (ratio >= 1.65 && ratio <= 1.9) return "16:9 (Widescreen)";
+  if (ratio >= 0.5 && ratio <= 0.65) return "9:16 (Vertical)";
+  if (ratio >= 1.25 && ratio <= 1.45) return "4:3 (Standard)";
+  if (ratio >= 2.1 && ratio <= 2.5) return "21:9 (Ultrawide)";
+  return `${Math.round(ratio * 100) / 100}:1`;
+}
 
 export async function processVideo(req, res, url, VideoConfig) {
   const requestUrl = url.searchParams.get("url") || "";
@@ -21,6 +35,10 @@ export async function processVideo(req, res, url, VideoConfig) {
   }
 
   const description = newUrl.searchParams.get("description") || "";
+  const width = newUrl.searchParams.get("width") || "1280";
+  const height = newUrl.searchParams.get("height") || "720";
+  const camera = newUrl.searchParams.get("camera") || "smooth cinematic motion";
+  const aspectRatio = calculateAspectRatio(width, height);
   const cacheKey = normalizeCacheKey(requestUrl);
 
   // Safe poster URL parsing
@@ -33,6 +51,10 @@ export async function processVideo(req, res, url, VideoConfig) {
       posterUrl = null;
     }
   }
+
+  const posterDescription = posterUrl
+    ? posterUrl.searchParams?.get("description") || "Poster image frame"
+    : "None specified";
 
   // 1. Check if video generation is disabled
   if (VideoConfig?.enabled === false) {
@@ -56,6 +78,12 @@ export async function processVideo(req, res, url, VideoConfig) {
   try {
     const prompt = await generatePrompt("video", {
       description: description || requestUrl,
+      width,
+      height,
+      aspectRatio,
+      camera,
+      posterDescription,
+      lensInstruction: getActiveLensInstruction() || "Standard video aesthetic",
     });
 
     // Check for cached poster image (or await active in-flight poster image generation)

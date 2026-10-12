@@ -26,7 +26,8 @@ import { serveMediaBuffer } from "../lib/rangeResponse.js";
 import { FALLBACK_MP4_BUFFER, generatePlaceholderSvg } from "../lib/fallbackMedia.js";
 import { registerPendingImage, getPendingImage } from "../lib/imageCache.js";
 import { syncGeminiModels } from "../lib/modelSync.js";
-import { generateStructuredPrompt } from "../lib/prompts.js";
+import { generateStructuredPrompt, generatePrompt } from "../lib/prompts.js";
+import { sessionState, getActiveLensInstruction } from "../lib/sessionState.js";
 import {
   extractAndSaveSiteProfile,
   getFormattedSiteProfile,
@@ -36,6 +37,9 @@ import {
   getNavigationThread,
   appendNavigationTurn,
   clearSiteMemory,
+  updateAndGetDomainState,
+  getDomainState,
+  getDomainColorPalette,
 } from "../lib/siteMemory.js";
 import { startServer } from "../server/index.js";
 
@@ -484,5 +488,219 @@ test("Task 3: Multi-Turn Navigation Threads: preserves immutable chat turns and 
   // Oldest turn (turn 1) dropped: turn 2 is now first
   assert.equal(threadAfterSlide[0].content, "User prompt 2");
 });
+
+test("Task 3: POST /config changing activeLens updates sessionState and clears prior site memory for reload", async () => {
+  clearSiteMemory();
+  const testPort = 3992;
+  const server = await startServer(
+    "127.0.0.1",
+    testPort,
+    { provider: "gemini", apiKey: "dummy", model: "gemini-3.5-flash" },
+    { provider: "gemini", apiKey: "dummy", model: "gemini-2.5-flash-image", enabled: false },
+    { provider: "gemini", apiKey: "dummy", model: "veo-3.1-fast-generate-preview", enabled: false },
+    { provider: "synth", apiKey: "", model: "synth-wav", enabled: true },
+    { activeLens: "modern", syncModels: false }
+  );
+
+  try {
+    const base = `http://127.0.0.1:${testPort}`;
+
+    // 1. Initially modern lens is active
+    assert.equal(sessionState.activeLens, "modern");
+
+    // 2. Establish modern site memory and navigation thread
+    extractAndSaveSiteProfile("https://example.com/", `
+      <!DOCTYPE html><html><head><title>Modern Example</title>
+      <style>:root { --brand: #3b82f6; }</style></head><body><header><nav><a href="/modern">Modern</a></nav></header></body></html>
+    `);
+    appendNavigationTurn("https://example.com/1", "User prompt modern", "<h1>Modern Page</h1>");
+
+    const profileBefore = getFormattedSiteProfile("https://example.com/about");
+    assert.ok(profileBefore.includes("--brand: #3b82f6"), "Should have modern profile in memory");
+    const threadBefore = getNavigationThread("https://example.com/2");
+    assert.equal(threadBefore.length, 2, "Should have 2 messages in modern thread");
+
+    // 3. User switches lens to cyberpunk-2077 via POST /config (e.g. from extension)
+    const res = await fetch(`${base}/config`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ activeLens: "cyberpunk-2077" }),
+    });
+    assert.equal(res.status, 200);
+
+    // 4. Verify sessionState.activeLens updated
+    assert.equal(sessionState.activeLens, "cyberpunk-2077");
+
+    // 5. Verify prior modern site memory and navigation threads were cleared so next /html request starts fresh
+    const profileAfter = getFormattedSiteProfile("https://example.com/about");
+    assert.ok(!profileAfter.includes("--brand: #3b82f6"), "Modern profile must be cleared on lens switch");
+    assert.ok(profileAfter.includes("None established yet"), "Should indicate fresh site memory");
+
+    const threadAfter = getNavigationThread("https://example.com/2");
+    assert.equal(threadAfter.length, 0, "Navigation thread must be reset for new lens");
+  } finally {
+    server.close();
+  }
+});
+
+test("Media prompts interpolate dimensions, active browsing lens, and audio transcript", async () => {
+  sessionState.activeLens = "cyberpunk-2077";
+
+  const imgPrompt = await generatePrompt("image", {
+    description: "neon city street",
+    width: "1024",
+    height: "768",
+    lensInstruction: getActiveLensInstruction(),
+  });
+  assert.ok(imgPrompt.includes("1024x768"), "Image prompt must include dimensions");
+  assert.ok(imgPrompt.includes("Cyberpunk") || imgPrompt.includes("cyberpunk") || imgPrompt.includes("2077"), "Image prompt must include cyberpunk lens");
+
+  const videoPrompt = await generatePrompt("video", {
+    description: "flying hovercar",
+    width: "1920",
+    height: "1080",
+    lensInstruction: getActiveLensInstruction(),
+  });
+  assert.ok(videoPrompt.includes("1920x1080"), "Video prompt must include dimensions");
+  assert.ok(videoPrompt.includes("Cyberpunk") || videoPrompt.includes("cyberpunk") || videoPrompt.includes("2077"), "Video prompt must include cyberpunk lens");
+
+  const audioPrompt = await generatePrompt("audio", {
+    description: "market vendor greeting",
+    type: "speech",
+    transcript: "Welcome to Night City, choom!",
+    lensInstruction: getActiveLensInstruction(),
+  });
+  assert.ok(audioPrompt.includes("Welcome to Night City, choom!"), "Audio prompt must include transcript");
+  assert.ok(audioPrompt.includes("speech"), "Audio prompt must include type");
+  assert.ok(audioPrompt.includes("Cyberpunk") || audioPrompt.includes("cyberpunk") || audioPrompt.includes("2077"), "Audio prompt must include cyberpunk lens");
+});
+
+test("Task 1: HTML prompt enrichment: decomposed route, media capabilities, and domain session state", async () => {
+  clearSiteMemory();
+
+  // 1. Test updateAndGetDomainState with query parameters
+  const stateWithQuery = updateAndGetDomainState("https://shop.example.com/search?q=wireless+headphones&category=audio&sort=price_asc");
+  assert.ok(stateWithQuery.includes('q="wireless headphones"'), "Domain state should capture search query");
+  assert.ok(stateWithQuery.includes('category="audio"'), "Domain state should capture category");
+  assert.ok(stateWithQuery.includes('sort="price_asc"'), "Domain state should capture sort");
+
+  // 2. Test updateAndGetDomainState with Form POST (login)
+  const stateWithPost = updateAndGetDomainState(
+    "https://shop.example.com/login",
+    "username=alice&password=SuperSecretPassword123&action=login"
+  );
+  assert.ok(stateWithPost.includes('username="alice"'), "Domain state should capture username");
+  assert.ok(stateWithPost.includes('password="********"'), "Password must be masked with ********");
+  assert.ok(!stateWithPost.includes("SuperSecretPassword123"), "Raw password must NEVER appear in domain state");
+  assert.ok(stateWithPost.includes('authenticated="true"'), "Successful credentials should set authenticated=true");
+
+  // 3. Test persistence across another URL on the same domain
+  const retrievedState = getDomainState("https://shop.example.com/account");
+  assert.ok(retrievedState.includes('authenticated="true"'), "Domain state must persist across domain navigations");
+  assert.ok(retrievedState.includes('username="alice"'), "Username must persist across domain navigations");
+
+  // 4. Test generateStructuredPrompt("html", ...) includes all enriched fields
+  const structured = await generateStructuredPrompt("html", {
+    requestUrl: "https://shop.example.com/search?q=wireless+headphones&category=audio#products",
+    pathname: "/search",
+    queryParams: 'q="wireless headphones", category="audio"',
+    hash: "#products",
+    mediaCapabilities: "Images: DISABLED (Do NOT emit external <img> tags; use rich inline <svg> vector illustrations, CSS art, or <canvas> instead); Video: ENABLED; Audio: ENABLED",
+    domainState: retrievedState,
+    lensInstruction: "Modern Web standard",
+  });
+
+  assert.ok(structured.prompt.includes("Decomposed Route: Path=/search | Query=q=\"wireless headphones\", category=\"audio\" | Hash=#products"), "Prompt must include decomposed route");
+  assert.ok(structured.prompt.includes("Active Media Capabilities: Images: DISABLED"), "Prompt must include media capabilities");
+  assert.ok(structured.prompt.includes("Do NOT emit external <img> tags"), "Prompt must instruct fallback when images disabled");
+  assert.ok(structured.prompt.includes("Active Domain Session State"), "Prompt must include active domain session state");
+  assert.ok(structured.prompt.includes('authenticated="true"'), "Prompt must include authenticated state");
+  assert.ok(structured.prompt.includes('username="alice"'), "Prompt must include persistent username");
+});
+
+test("Task 2: Image prompt enrichment: role, aspectRatio, siteColors, and colorScheme", async () => {
+  clearSiteMemory();
+
+  // Establish site profile with color variables
+  extractAndSaveSiteProfile("https://studio.example.com/", `
+    <!DOCTYPE html><html><head><title>Studio</title>
+    <style>:root { --brand-primary: #6366f1; --brand-accent: #ec4899; }</style></head>
+    <body><img src="https://studio.example.com/logo.png?role=logo" alt="Logo"></body></html>
+  `);
+
+  const palette = getDomainColorPalette("https://studio.example.com/banner.jpg");
+  assert.ok(palette.includes("--brand-primary: #6366f1"), "Should extract domain color palette");
+
+  const prompt = await generatePrompt("image", {
+    description: "futuristic music production suite",
+    width: "1920",
+    height: "1080",
+    role: "hero",
+    aspectRatio: "16:9 (Widescreen)",
+    siteColors: palette,
+    colorScheme: "dark",
+    lensInstruction: "2077 Cyberpunk Net",
+  });
+
+  assert.ok(prompt.includes("Role & Framing: hero (Aspect Ratio: 16:9 (Widescreen))"), "Image prompt must include role & aspect ratio");
+  assert.ok(prompt.includes("Site Brand Palette & Theme: --brand-primary: #6366f1"), "Image prompt must include brand colors");
+  assert.ok(prompt.includes("(Color Scheme: dark)"), "Image prompt must include color scheme");
+  assert.ok(prompt.includes("Role Framing Guidance:"), "Image prompt must include role framing guidance");
+});
+
+test("Task 3: Video prompt enrichment: posterDescription, camera, and aspectRatio", async () => {
+  const prompt = await generatePrompt("video", {
+    description: "high-speed hyperloop train departing terminal",
+    width: "1280",
+    height: "720",
+    aspectRatio: "16:9 (Widescreen)",
+    camera: "dolly forward following train",
+    posterDescription: "Sleek train docked at glowing platform",
+    lensInstruction: "Modern Web standard",
+  });
+
+  assert.ok(prompt.includes("Aspect Ratio: 16:9 (Widescreen)"), "Video prompt must include aspect ratio");
+  assert.ok(prompt.includes("Camera / Cinematography Motion: dolly forward following train"), "Video prompt must include camera motion");
+  assert.ok(prompt.includes("Starting Poster Frame Context: Sleek train docked at glowing platform"), "Video prompt must include poster description");
+});
+
+test("Task 4: Audio prompt & procedural synthesizer: bpm, mood, lens, and transcript", async () => {
+  // 1. Prompt interpolation
+  const prompt = await generatePrompt("audio", {
+    description: "retro arcade stage theme",
+    type: "chiptune",
+    bpm: "145",
+    mood: "energetic",
+    transcript: "Level 1 Start!",
+    lensInstruction: "Arcade 8-Bit Era",
+  });
+
+  assert.ok(prompt.includes("Tempo / BPM: 145"), "Audio prompt must include BPM");
+  assert.ok(prompt.includes("Mood / Vibe: energetic"), "Audio prompt must include mood");
+  assert.ok(prompt.includes("Transcript: Level 1 Start!"), "Audio prompt must include transcript");
+
+  // 2. Synth execution with lens & mood
+  const synthCyberpunk = synthesizeWav({
+    description: "ambient neon rain",
+    type: "music",
+    bpm: 110,
+    mood: "tense",
+    lens: "cyberpunk-2077",
+    durationSeconds: 2.0,
+  });
+  assert.equal(synthCyberpunk.mimeType, "audio/wav");
+  assert.ok(synthCyberpunk.buffer.length > 5000, "Cyberpunk synth buffer should be generated");
+
+  // 3. Synth execution with speech transcript duration scaling
+  const synthSpeech = synthesizeWav({
+    type: "speech",
+    transcript: "Welcome to Fauxmium synthetic web browser! How can I assist your journey?",
+    mood: "helpful",
+  });
+  assert.equal(synthSpeech.mimeType, "audio/wav");
+  assert.ok(synthSpeech.buffer.length > 50000, "Speech buffer duration should scale with transcript length");
+});
+
+
 
 

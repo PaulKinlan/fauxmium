@@ -9,6 +9,32 @@ import {
   normalizeCacheKey,
 } from "../lib/imageCache.js";
 import { generatePlaceholderSvg } from "../lib/fallbackMedia.js";
+import { getActiveLensInstruction } from "../lib/sessionState.js";
+import { getDomainColorPalette } from "../lib/siteMemory.js";
+
+function inferImageRole(urlStr, desc, w, h) {
+  const text = `${urlStr} ${desc}`.toLowerCase();
+  if (text.includes("logo") || text.includes("brand") || text.includes("wordmark")) return "logo";
+  if (text.includes("icon") || text.includes("favicon") || text.includes("symbol") || text.includes("badge")) return "icon";
+  if (text.includes("avatar") || text.includes("headshot") || text.includes("profile") || text.includes("portrait") || text.includes("author") || text.includes("user")) return "avatar";
+  if (text.includes("hero") || text.includes("banner") || text.includes("cover") || text.includes("header") || (parseInt(w) >= 1000 && parseInt(h) <= 600)) return "hero";
+  if (text.includes("product") || text.includes("item") || text.includes("merch") || text.includes("shop")) return "product";
+  if (text.includes("thumb") || text.includes("preview") || text.includes("card") || (parseInt(w) <= 400 && parseInt(h) <= 400)) return "thumbnail";
+  return "illustration/photo";
+}
+
+function calculateAspectRatio(w, h) {
+  const width = parseFloat(w) || 800;
+  const height = parseFloat(h) || 600;
+  if (height === 0) return "16:9 (Widescreen)";
+  const ratio = width / height;
+  if (ratio >= 0.9 && ratio <= 1.1) return "1:1 (Square)";
+  if (ratio >= 1.65 && ratio <= 1.9) return "16:9 (Widescreen)";
+  if (ratio >= 0.5 && ratio <= 0.65) return "9:16 (Vertical)";
+  if (ratio >= 1.25 && ratio <= 1.45) return "4:3 (Standard)";
+  if (ratio >= 2.1 && ratio <= 2.5) return "21:9 (Ultrawide)";
+  return `${Math.round(ratio * 100) / 100}:1`;
+}
 
 export async function processImage(res, url, imageConfig) {
   const requestUrl = url.searchParams.get("url") || "";
@@ -40,6 +66,10 @@ export async function processImage(res, url, imageConfig) {
   const description = newUrl.searchParams.get("description") || "";
   const width = newUrl.searchParams.get("width") || "800";
   const height = newUrl.searchParams.get("height") || "600";
+  const role = newUrl.searchParams.get("role") || inferImageRole(requestUrl, description, width, height);
+  const aspectRatio = calculateAspectRatio(width, height);
+  const siteColors = getDomainColorPalette(requestUrl, newUrl.searchParams.get("origin") || "");
+  const colorScheme = newUrl.searchParams.get("colorScheme") || "light";
   const cacheKey = normalizeCacheKey(requestUrl);
 
   const displayUrl = requestUrl
@@ -89,6 +119,11 @@ export async function processImage(res, url, imageConfig) {
         description: description || requestUrl,
         width,
         height,
+        role,
+        aspectRatio,
+        siteColors,
+        colorScheme,
+        lensInstruction: getActiveLensInstruction() || "Standard web imagery",
       });
 
       generationPromise = generateImage(imageConfig, prompt);

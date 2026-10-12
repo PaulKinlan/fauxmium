@@ -1,2 +1,6 @@
 Create audio matching the following description: ###description###
 Type: ###type###
+Tempo / BPM: ###bpm###
+Mood / Vibe: ###mood###
+Transcript: ###transcript###
+Aesthetic / Era Lens: ###lensInstruction###
