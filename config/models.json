@@ -147,6 +147,145 @@
         "supported": false
       }
     },
+    "deepseek": {
+      "aliases": ["deepseek"],
+      "normalizedName": "deepseek",
+      "protocol": "openai-compatible",
+      "baseURL": "https://api.deepseek.com/v1",
+      "baseUrlEnv": ["DEEPSEEK_BASE_URL"],
+      "envKeys": ["DEEPSEEK_API_KEY"],
+      "text": {
+        "supported": true,
+        "defaultModel": "deepseek-v4-flash",
+        "choices": [
+          "deepseek-v4-flash",
+          "deepseek-v4",
+          "deepseek-reasoner",
+          "deepseek-chat",
+          "deepseek-v3.2"
+        ]
+      },
+      "image": {
+        "supported": false
+      },
+      "video": {
+        "supported": false
+      },
+      "audio": {
+        "supported": false
+      }
+    },
+    "zai": {
+      "aliases": ["zai", "glm", "zhipu"],
+      "normalizedName": "zai",
+      "protocol": "openai-compatible",
+      "baseURL": "https://api.z.ai/api/paas/v4",
+      "baseUrlEnv": ["ZAI_BASE_URL", "GLM_BASE_URL"],
+      "envKeys": ["ZAI_API_KEY", "GLM_API_KEY", "ZHIPU_API_KEY"],
+      "text": {
+        "supported": true,
+        "defaultModel": "glm-5-flash",
+        "choices": [
+          "glm-5-flash",
+          "glm-5-plus",
+          "glm-5-air",
+          "glm-4.5-flash",
+          "glm-zero-preview"
+        ]
+      },
+      "image": {
+        "supported": false
+      },
+      "video": {
+        "supported": false
+      },
+      "audio": {
+        "supported": false
+      }
+    },
+    "kimi": {
+      "aliases": ["kimi", "moonshot"],
+      "normalizedName": "kimi",
+      "protocol": "openai-compatible",
+      "baseURL": "https://api.moonshot.ai/v1",
+      "baseUrlEnv": ["KIMI_BASE_URL", "MOONSHOT_BASE_URL"],
+      "envKeys": ["KIMI_API_KEY", "MOONSHOT_API_KEY"],
+      "text": {
+        "supported": true,
+        "defaultModel": "kimi-k2.5-flash",
+        "choices": [
+          "kimi-k2.5-flash",
+          "kimi-k2.5",
+          "kimi-k2-thinking",
+          "kimi-latest"
+        ]
+      },
+      "image": {
+        "supported": false
+      },
+      "video": {
+        "supported": false
+      },
+      "audio": {
+        "supported": false
+      }
+    },
+    "openrouter": {
+      "aliases": ["openrouter"],
+      "normalizedName": "openrouter",
+      "protocol": "openai-compatible",
+      "baseURL": "https://openrouter.ai/api/v1",
+      "baseUrlEnv": ["OPENROUTER_BASE_URL"],
+      "envKeys": ["OPENROUTER_API_KEY"],
+      "text": {
+        "supported": true,
+        "defaultModel": "deepseek/deepseek-v4-flash",
+        "choices": [
+          "deepseek/deepseek-v4-flash",
+          "deepseek/deepseek-v4",
+          "z-ai/glm-5",
+          "moonshotai/kimi-k2.5",
+          "qwen/qwen3.8-72b-instruct"
+        ]
+      },
+      "image": {
+        "supported": false
+      },
+      "video": {
+        "supported": false
+      },
+      "audio": {
+        "supported": false
+      }
+    },
+    "ollama": {
+      "aliases": ["ollama", "local", "custom"],
+      "normalizedName": "ollama",
+      "protocol": "openai-compatible",
+      "baseURL": "http://127.0.0.1:11434/v1",
+      "baseUrlEnv": ["OLLAMA_BASE_URL", "OPENAI_BASE_URL"],
+      "envKeys": ["OLLAMA_API_KEY", "OPENAI_API_KEY"],
+      "allowEmptyKey": true,
+      "text": {
+        "supported": true,
+        "defaultModel": "qwen3.8:14b",
+        "choices": [
+          "qwen3.8:14b",
+          "deepseek-r1:14b",
+          "llama3.3:70b",
+          "glm4:9b"
+        ]
+      },
+      "image": {
+        "supported": false
+      },
+      "video": {
+        "supported": false
+      },
+      "audio": {
+        "supported": false
+      }
+    },
     "synth": {
       "aliases": ["synth", "procedural", "local"],
       "normalizedName": "synth",
@@ -244,6 +383,29 @@
     "gpt-4o-mini-tts": { "unit": "per_1k_chars", "input": 0.0, "output": 0.015 },
     "tts-1": { "unit": "per_1k_chars", "input": 0.0, "output": 0.015 },
     "tts-1-hd": { "unit": "per_1k_chars", "input": 0.0, "output": 0.030 },
+    "deepseek-v4-flash": { "unit": "tokens", "input": 0.14, "output": 0.28 },
+    "deepseek-v4": { "unit": "tokens", "input": 0.27, "output": 1.10 },
+    "deepseek-reasoner": { "unit": "tokens", "input": 0.55, "output": 2.19 },
+    "deepseek-chat": { "unit": "tokens", "input": 0.14, "output": 0.28 },
+    "deepseek-v3.2": { "unit": "tokens", "input": 0.14, "output": 0.28 },
+    "glm-5-flash": { "unit": "tokens", "input": 0.10, "output": 0.20 },
+    "glm-5-plus": { "unit": "tokens", "input": 0.50, "output": 2.00 },
+    "glm-5-air": { "unit": "tokens", "input": 0.10, "output": 0.50 },
+    "glm-4.5-flash": { "unit": "tokens", "input": 0.05, "output": 0.15 },
+    "glm-zero-preview": { "unit": "tokens", "input": 0.30, "output": 1.20 },
+    "kimi-k2.5-flash": { "unit": "tokens", "input": 0.15, "output": 0.60 },
+    "kimi-k2.5": { "unit": "tokens", "input": 0.50, "output": 2.00 },
+    "kimi-k2-thinking": { "unit": "tokens", "input": 0.60, "output": 2.50 },
+    "kimi-latest": { "unit": "tokens", "input": 0.50, "output": 2.00 },
+    "deepseek/deepseek-v4-flash": { "unit": "tokens", "input": 0.14, "output": 0.28 },
+    "deepseek/deepseek-v4": { "unit": "tokens", "input": 0.27, "output": 1.10 },
+    "z-ai/glm-5": { "unit": "tokens", "input": 0.20, "output": 0.80 },
+    "moonshotai/kimi-k2.5": { "unit": "tokens", "input": 0.50, "output": 2.00 },
+    "qwen/qwen3.8-72b-instruct": { "unit": "tokens", "input": 0.40, "output": 1.60 },
+    "qwen3.8:14b": { "unit": "tokens", "input": 0.05, "output": 0.10 },
+    "deepseek-r1:14b": { "unit": "tokens", "input": 0.05, "output": 0.10 },
+    "llama3.3:70b": { "unit": "tokens", "input": 0.10, "output": 0.20 },
+    "glm4:9b": { "unit": "tokens", "input": 0.05, "output": 0.10 },
     "veo-": { "unit": "per_second", "input": 0.0, "output": 0.40 },
     "synth-": { "unit": "per_second", "input": 0.0, "output": 0.0 }
   },

@@ -23,12 +23,24 @@ import { startBrowser } from "../browser.js";
  * Main run function - handles server startup
  */
 async function run(textProviderName, argv) {
-  const textProvider = normalizeProvider(textProviderName);
+  let effectiveTextProvider = textProviderName;
+  let textGenerationModel = argv.model;
+  if (textGenerationModel && textGenerationModel.includes(":")) {
+    const colonIdx = textGenerationModel.indexOf(":");
+    const possibleProvider = textGenerationModel.slice(0, colonIdx);
+    const candidateConfig = getProviderConfig(possibleProvider);
+    if (candidateConfig) {
+      effectiveTextProvider = candidateConfig.key;
+      textGenerationModel = textGenerationModel.slice(colonIdx + 1);
+    }
+  }
+
+  const textProvider = normalizeProvider(effectiveTextProvider);
   const imageProvider = normalizeProvider(
-    argv["image-provider"] || textProviderName
+    argv["image-provider"] || effectiveTextProvider
   );
   const videoProvider = normalizeProvider(
-    argv["video-provider"] || textProviderName
+    argv["video-provider"] || effectiveTextProvider
   );
   const audioProvider = normalizeProvider(
     argv["audio-provider"] || "synth"
@@ -43,7 +55,6 @@ async function run(textProviderName, argv) {
   const port = argv.port;
   const enableDevTools = argv.devtools;
 
-  const textGenerationModel = argv.model;
   const imageGenerationModel = argv["image-model"];
   const videoGenerationModel = argv["video-model"];
   const audioGenerationModel = argv["audio-model"];
@@ -71,12 +82,14 @@ async function run(textProviderName, argv) {
       provider: textProvider,
       apiKey: textApiKey,
       model: textGenerationModel,
+      baseURL: argv["base-url"],
       verbose: argv.verbose,
     },
     {
       provider: imageProvider,
       apiKey: imageApiKey,
       model: imageGenerationModel,
+      baseURL: argv["base-url"],
       enabled: argv.images !== false,
       verbose: argv.verbose,
     },

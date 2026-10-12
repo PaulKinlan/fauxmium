@@ -21,6 +21,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const audioProviderSelect = document.getElementById("audio-provider-select");
 
   const btnReload = document.getElementById("btn-reload");
+  const btnExport = document.getElementById("btn-export");
   const btnClearCache = document.getElementById("btn-clear-cache");
   const btnResetCosts = document.getElementById("btn-reset-costs");
   const btnSaveConfig = document.getElementById("btn-save-config");
@@ -210,6 +211,32 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     } catch (e) {
       showBanner(`Reload error: ${e.message}`, true);
+    }
+  });
+
+  // Button: Export Current Page
+  btnExport?.addEventListener("click", async () => {
+    try {
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      const currentUrl = tabs?.[0]?.url;
+      if (!currentUrl) {
+        showBanner("No active tab URL found", true);
+        return;
+      }
+      showBanner("Bundling page export...");
+      const exportUrl = `${baseUrl}/export?url=${encodeURIComponent(currentUrl)}&download=1`;
+      if (chrome.downloads?.download) {
+        await chrome.downloads.download({
+          url: exportUrl,
+          filename: "fauxmium-export.html",
+          saveAs: true,
+        });
+      } else {
+        window.open(exportUrl, "_blank");
+      }
+      showBanner("Export started!");
+    } catch (e) {
+      showBanner(`Export error: ${e.message}`, true);
     }
   });
 

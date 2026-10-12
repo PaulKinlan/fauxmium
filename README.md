@@ -47,18 +47,29 @@ To maximize LLM cache hit rates and reduce inference costs by 75%–90%:
 - **Tiered User Prompt (`prompts/html.txt`)**: Segregates stable session environment variables (bucketed 64px viewports, normalized language, day-level date) from dynamic per-request routing.
 - **Prompt Cache Cost Tracking**: Automatically extracts cached input token metrics from Anthropic, OpenAI, and Gemini responses, billing cached tokens at a 75% discount in `costCalculator.js`.
 
-### 5. Declarative Model Catalog & Live Sync (`config/models.json`)
+### 5. Declarative Model Catalog & Pluggable Providers (`config/models.json`)
 Declarative JSON configuration declaring available models, capabilities, aliases, and pricing:
 - **Google Gemini**: `gemini-3.8-flash` (default text), `gemini-3.8-pro`, `gemini-3.8-flash-lite`, `gemini-3.1-flash-image` (default image), `veo-3.1-fast-generate-preview` (default video), `gemini-3.8-flash-tts` (audio).
 - **OpenAI**: `gpt-6-sol` (default text), `gpt-6.1-sol`, `gpt-6-luna`, `gpt-6-astra`, `gpt-image-2.5` (image), `gpt-4o-mini-tts` / `tts-1` (audio).
 - **Anthropic**: `claude-sonnet-5-5` (default text), `claude-opus-5-5`, `claude-haiku-5-5`.
 - **Groq**: `openai/gpt-oss-120b` (default text), `qwen/qwen3.8-27b`, `llama-3.3-70b-versatile`.
+- **DeepSeek**: `deepseek-v4-flash` (default text), `deepseek-v4`, `deepseek-reasoner`, `deepseek-chat` (OpenAI-compatible protocol with automated `<think>` reasoning tag stripping).
+- **Zhipu AI (GLM)**: `glm-5-flash` (default text), `glm-5-plus`, `glm-5-air`.
+- **Moonshot AI (Kimi)**: `kimi-k2.5-flash` (default text), `kimi-k2.5`, `kimi-k2-thinking`.
+- **OpenRouter**: `deepseek/deepseek-v4-flash`, `z-ai/glm-5`, `moonshotai/kimi-k2.5` multi-model gateway.
+- **Ollama (Offline Local)**: `qwen3.8:14b`, `llama3.3:70b`, `deepseek-r1:14b` with zero-key local execution on `http://127.0.0.1:11434/v1`.
 - **Synth**: `synth-wav` (built-in procedural WAV generator).
+- **User Models Overlay**: Inject custom providers, models, and fallback pricing via `FAUXMIUM_MODELS_PATH`, `./fauxmium.models.json`, or `~/.fauxmium/models.json`.
 - **Automatic Pricing & Model Discovery**: Fetches live Gemini models and updates token pricing from LiteLLM with a 24-hour disk cache fallback.
 
-### 6. Chrome Extension
+### 6. Dynamic In-Page APIs & Element Remix Wand
+- **Dynamic In-Page Fetch (`/api/*`)**: Synthetic pages can make real `fetch('/api/todos')`, `fetch('/api/weather?city=tokyo')`, or `fetch('/api/search')` requests. Fauxmium dynamically synthesizes authentic, contextual JSON responses matching the page's design DNA and active browsing lens.
+- **Alt+Click Element Remix Wand**: Hold `Alt` in any synthetic page to highlight elements with a purple wand indicator. Click any element to open a floating prompt modal and remix that individual element in-place with View Transitions!
+
+### 7. Chrome Extension & Single-File Page Export
 Fauxmium automatically installs a companion Chrome Extension (`extension/`) providing:
 - **Live Browsing Lens Switcher**: Change the active lens in real time with auto-save and tab regeneration.
+- **📦 Single-File Page Export**: Click the Export button to download a self-contained `.html` file with all cached images, videos, and audio converted into base64 data URIs for 100% offline viewing without a server!
 - **Live Accounting & Token Tracker**: Real-time breakdown of API costs across Text, Image, Video, and Audio modalities with cache badge indicators (`⚡`).
 - **Modality Toggles**: Enable or disable image, video, or audio generation on the fly.
 - **Adaptive Light/Dark Theme**: Vector toolbar icon and popup UI matching your operating system color scheme.
@@ -143,8 +154,9 @@ Options:
   --custom-lens <prompt>         Custom aesthetic instructions when --lens is "custom"
 
 Text Provider & Model:
-  -m, --model <model>            Text generation model (e.g. "gemini-3.8-flash", "gpt-6-sol", "claude-sonnet-5-5")
+  -m, --model <model>            Text generation model or provider:model (e.g. "gemini-3.8-flash", "deepseek:deepseek-v4-flash", "ollama:qwen3.8:14b")
   --api-key <key>                API key for active text provider
+  --base-url <url>               Custom OpenAI-compatible base URL (e.g. "http://127.0.0.1:11434/v1")
 
 Image Options:
   --image-provider <provider>    Image provider: "gemini" | "openai" (default: "gemini")
@@ -178,10 +190,16 @@ npx fauxmium anthropic -m claude-sonnet-5-5
 # 3. Fast local browsing with Groq GPT-OSS 120B and procedural audio
 npx fauxmium groq -m openai/gpt-oss-120b --audio-provider synth
 
-# 4. Text-only reading mode (images, video, audio disabled for instant speed)
+# 4. Zero-key 100% offline local inference with Ollama
+npx fauxmium ollama -m qwen3.8:14b
+
+# 5. DeepSeek V4 Reasoner with thinking tags stripped automatically
+npx fauxmium deepseek -m deepseek-reasoner
+
+# 6. Text-only reading mode (images, video, audio disabled for instant speed)
 npx fauxmium --no-image --no-video --no-audio
 
-# 5. Y2K Aesthetic with custom OpenAI TTS voice
+# 7. Y2K Aesthetic with custom OpenAI TTS voice
 npx fauxmium --lens y2k --audio-provider openai --audio-model tts-1
 ```
 
@@ -197,6 +215,8 @@ Fauxmium starts a lightweight Node.js HTTP proxy server (`server/index.js`) that
 | `/image` | `GET` | Generates AI image matching description, dimensions, semantic role, and site color palette |
 | `/video` | `GET` | Generates AI video clip (Veo 3.1) seeded by companion poster frame with HTTP 206 range streaming |
 | `/audio` | `GET` | Generates audio track (TTS speech or procedural WAV) matching description, type, transcript, and tempo |
+| `/api` / `/api/*` | `GET`/`POST` | Synthesizes dynamic in-page REST JSON API responses or executes Alt+Click Element Remix wand (`action=remix`) |
+| `/export` | `GET` | Bundles and exports current cached page into a self-contained single-file HTML document with inlined base64 media |
 | `/config` | `GET` | Returns active runtime configuration, model selections, and available lenses |
 | `/config` | `POST` | Dynamically updates runtime configuration, active lens, and media enabled states |
 | `/cost` | `GET` | Returns cumulative session cost and per-modality breakdown (Text, Image, Video, Audio) |

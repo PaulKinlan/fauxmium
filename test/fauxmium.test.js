@@ -9,6 +9,8 @@ import {
   BROWSING_LENSES,
   resolveModelAlias,
   getProvidersWithFeature,
+  getProviderConfig,
+  resolveProviderBaseUrl,
 } from "../config/providers.js";
 
 import {
@@ -18,16 +20,25 @@ import {
   resetSessionCosts,
 } from "../lib/costCalculator.js";
 
-import { makeVideoModel } from "../lib/aiAdapter.js";
+import { makeVideoModel, generateTextDirect } from "../lib/aiAdapter.js";
 import { synthesizeWav } from "../lib/audioSynth.js";
 import fs from "node:fs";
 import path from "node:path";
 import { serveMediaBuffer } from "../lib/rangeResponse.js";
 import { FALLBACK_MP4_BUFFER, generatePlaceholderSvg } from "../lib/fallbackMedia.js";
-import { registerPendingImage, getPendingImage } from "../lib/imageCache.js";
+import {
+  registerPendingImage,
+  getPendingImage,
+  cacheHtml,
+  cacheImage,
+  cacheAudio,
+  getExportHtml,
+} from "../lib/imageCache.js";
 import { syncGeminiModels } from "../lib/modelSync.js";
 import { generateStructuredPrompt, generatePrompt } from "../lib/prompts.js";
 import { sessionState, getActiveLensInstruction } from "../lib/sessionState.js";
+import { streamCodeBlocks } from "../lib/streamCodeBlocks.js";
+import { processAPI } from "../server/processAPI.js";
 import {
   extractAndSaveSiteProfile,
   getFormattedSiteProfile,
@@ -756,4 +767,305 @@ test("Task 5: Documentation & GitHub Pages verification", () => {
   assert.ok(workflowContent.includes("actions/deploy-pages"), "workflow must deploy to pages");
   assert.ok(workflowContent.includes("actions/upload-pages-artifact"), "workflow must upload pages artifact");
   assert.ok(workflowContent.includes("docs"), "workflow must target docs directory");
+});
+
+test("Task: Pluggable OpenAI-compatible providers, model pricing & baseURL resolution", async () => {
+  // 1. Verify provider configurations
+  const deepseek = getProviderConfig("deepseek");
+  assert.ok(deepseek, "deepseek config must exist");
+  assert.equal(deepseek.protocol, "openai-compatible");
+  assert.equal(resolveProviderBaseUrl("deepseek"), "https://api.deepseek.com/v1");
+
+  const zai = getProviderConfig("zai");
+  assert.ok(zai, "zai config must exist");
+  assert.equal(zai.protocol, "openai-compatible");
+  assert.equal(resolveProviderBaseUrl("zai"), "https://api.z.ai/api/paas/v4");
+
+  const kimi = getProviderConfig("kimi");
+  assert.ok(kimi, "kimi config must exist");
+  assert.equal(kimi.protocol, "openai-compatible");
+  assert.equal(resolveProviderBaseUrl("kimi"), "https://api.moonshot.ai/v1");
+
+  const openrouter = getProviderConfig("openrouter");
+  assert.ok(openrouter, "openrouter config must exist");
+  assert.equal(openrouter.protocol, "openai-compatible");
+  assert.equal(resolveProviderBaseUrl("openrouter"), "https://openrouter.ai/api/v1");
+
+  const ollama = getProviderConfig("ollama");
+  assert.ok(ollama, "ollama config must exist");
+  assert.equal(ollama.protocol, "openai-compatible");
+  assert.equal(ollama.allowEmptyKey, true);
+  assert.equal(resolveProviderBaseUrl("ollama"), "http://127.0.0.1:11434/v1");
+
+  // Explicit override takes precedence
+  assert.equal(
+    resolveProviderBaseUrl("ollama", "http://custom-host:8080/v1"),
+    "http://custom-host:8080/v1"
+  );
+
+  // 2. Test wire call to mock OpenAI-compatible local server
+  const mockServer = http.createServer((req, res) => {
+    let body = "";
+    req.on("data", (c) => (body += c));
+    req.on("end", () => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          id: "chatcmpl-test",
+          object: "chat.completion",
+          created: Date.now(),
+          model: "llama3.3:70b",
+          choices: [
+            {
+              index: 0,
+              message: { role: "assistant", content: "synthetic text from ollama" },
+              finish_reason: "stop",
+            },
+          ],
+        })
+      );
+    });
+  });
+  await new Promise((r) => mockServer.listen(0, "127.0.0.1", r));
+  const mockPort = mockServer.address().port;
+
+  try {
+    const res = await generateTextDirect(
+      {
+        provider: "ollama",
+        model: "llama3.3:70b",
+        baseURL: `http://127.0.0.1:${mockPort}/v1`,
+        apiKey: "local",
+      },
+      "Test prompt"
+    );
+    assert.equal(res.text, "synthetic text from ollama");
+  } finally {
+    mockServer.close();
+  }
+});
+
+test("Task: Stream code blocks thinking tag stripping", async () => {
+  // 1. Full <think> block within a chunk
+  const filter1 = streamCodeBlocks("html");
+  let out1 = "";
+  for await (const chunk of filter1({
+    text: "<think>Let me formulate the DOM structure.</think>```html\n<h1>Clean Title</h1>\n```",
+  })) {
+    out1 += chunk;
+  }
+  for await (const chunk of filter1({ END: true })) {
+    out1 += chunk;
+  }
+  assert.ok(!out1.includes("<think>"), "Should not contain <think>");
+  assert.ok(!out1.includes("formulate"), "Should not contain thinking steps");
+  assert.ok(out1.includes("<h1>Clean Title</h1>"), "Must yield inner code content");
+
+  // 2. <think> tag split across streaming chunks
+  const filter2 = streamCodeBlocks("html");
+  let out2 = "";
+  for await (const chunk of filter2({ text: "<think>Step 1: pondering..." })) {
+    out2 += chunk;
+  }
+  for await (const chunk of filter2({
+    text: "Step 2: done.</think>\n```html\n<p>Split Chunk Result</p>\n```",
+  })) {
+    out2 += chunk;
+  }
+  for await (const chunk of filter2({ END: true })) {
+    out2 += chunk;
+  }
+  assert.ok(!out2.includes("pondering"), "Should not contain split think content");
+  assert.ok(out2.includes("<p>Split Chunk Result</p>"));
+
+  // 3. Fallback without code fences but with thinking tags
+  const filter3 = streamCodeBlocks("html");
+  let out3 = "";
+  for await (const chunk of filter3({
+    text: "<think>Model forgot markdown fences</think><!DOCTYPE html><html><body>No fence page</body></html>",
+  })) {
+    out3 += chunk;
+  }
+  for await (const chunk of filter3({ END: true })) {
+    out3 += chunk;
+  }
+  assert.ok(!out3.includes("forgot markdown"), "Should strip think tag even without fences");
+  assert.ok(out3.includes("No fence page"), "Should yield raw HTML content");
+});
+
+test("Task: In-page /api dynamic JSON synthesis and Element Remix wand", async () => {
+  const mockServer = http.createServer((req, res) => {
+    let body = "";
+    req.on("data", (c) => (body += c));
+    req.on("end", () => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      const parsed = JSON.parse(body || "{}");
+      const userMsg = parsed.messages?.find((m) => m.role === "user")?.content || "";
+
+      let content = '{"todos":[{"id":1,"task":"Buy groceries","done":false}]}';
+      if (userMsg.includes("Remix Request")) {
+        content = '<div class="remixed-card"><h3>Remixed Heading</h3></div>';
+      }
+
+      res.end(
+        JSON.stringify({
+          id: "chatcmpl-test",
+          object: "chat.completion",
+          created: Date.now(),
+          model: "gpt-5.6-luna",
+          choices: [
+            {
+              index: 0,
+              message: { role: "assistant", content },
+              finish_reason: "stop",
+            },
+          ],
+        })
+      );
+    });
+  });
+  await new Promise((r) => mockServer.listen(0, "127.0.0.1", r));
+  const mockPort = mockServer.address().port;
+
+  const testConfig = {
+    provider: "deepseek",
+    model: "deepseek-chat",
+    baseURL: `http://127.0.0.1:${mockPort}/v1`,
+    apiKey: "test",
+  };
+
+  try {
+    // 1. Element Remix: action=remix
+    let remixResult = null;
+    const mockResRemix = {
+      statusCode: 200,
+      headers: {},
+      setHeader(k, v) {
+        this.headers[k.toLowerCase()] = v;
+      },
+      writeHead(code) {
+        this.statusCode = code;
+      },
+      end(data) {
+        remixResult = JSON.parse(data);
+      },
+    };
+
+    const parsedRemixUrl = new URL(
+      "http://127.0.0.1/api?action=remix&url=https://example.com/demo"
+    );
+    const { Readable } = await import("node:stream");
+    const reqStreamRemix = new Readable({
+      read() {
+        this.push(
+          JSON.stringify({
+            action: "remix",
+            currentHtml: '<div class="old">Old Card</div>',
+            prompt: "Make it a remixed card",
+            url: "https://example.com/demo",
+          })
+        );
+        this.push(null);
+      },
+    });
+    reqStreamRemix.method = "POST";
+
+    await processAPI(reqStreamRemix, mockResRemix, parsedRemixUrl, testConfig);
+
+    assert.equal(mockResRemix.statusCode, 200);
+    assert.equal(remixResult.ok, true);
+    assert.ok(remixResult.html.includes("remixed-card"));
+
+    // 2. In-page dynamic JSON API synthesis: /api/todos
+    let apiResult = null;
+    const mockResApi = {
+      statusCode: 200,
+      headers: {},
+      setHeader(k, v) {
+        this.headers[k.toLowerCase()] = v;
+      },
+      writeHead(code) {
+        this.statusCode = code;
+      },
+      end(data) {
+        apiResult = JSON.parse(data);
+      },
+    };
+
+    const reqStreamApi = new Readable({
+      read() {
+        this.push(null);
+      },
+    });
+    reqStreamApi.method = "GET";
+
+    const parsedApiUrl = new URL("http://127.0.0.1/api/todos?category=personal");
+    await processAPI(reqStreamApi, mockResApi, parsedApiUrl, testConfig);
+
+    assert.equal(mockResApi.statusCode, 200);
+    assert.ok(Array.isArray(apiResult.todos));
+    assert.equal(apiResult.todos[0].task, "Buy groceries");
+  } finally {
+    mockServer.close();
+  }
+});
+
+test("Task: Single-file page export (/export & getExportHtml)", async () => {
+  const exportUrl = "https://example.com/export-target";
+  const imgUrl = "https://example.com/assets/banner.jpg";
+  const audioUrl = "https://example.com/assets/bgm.wav";
+
+  const rawHtml = `<!DOCTYPE html><html><head><title>Export</title></head><body><img src="${imgUrl}"><audio src="${audioUrl}"></audio></body></html>`;
+  cacheHtml(exportUrl, rawHtml);
+  cacheImage(imgUrl, {
+    imageBytes: Buffer.from("fake-jpeg-image-bytes"),
+    mimeType: "image/jpeg",
+  });
+  cacheAudio(audioUrl, {
+    buffer: Buffer.from("fake-audio-wav-bytes"),
+    mimeType: "audio/wav",
+  });
+
+  // 1. Direct getExportHtml validation
+  const exportedHtml = getExportHtml(exportUrl);
+  assert.ok(exportedHtml, "Export HTML must be generated");
+  assert.ok(
+    exportedHtml.includes('src="data:image/jpeg;base64,'),
+    "Image src must be converted to base64 data URI"
+  );
+  assert.ok(
+    exportedHtml.includes('src="data:audio/wav;base64,'),
+    "Audio src must be converted to base64 data URI"
+  );
+
+  // 2. HTTP /export endpoint on server
+  const testPort = 3993;
+  const server = await startServer(
+    "127.0.0.1",
+    testPort,
+    { provider: "gemini", apiKey: "", model: "gemini-3.8-flash" },
+    { provider: "gemini", apiKey: "", model: "gemini-3.1-flash-image", enabled: true },
+    { provider: "gemini", apiKey: "", model: "veo-3.1-fast-generate-preview", enabled: true },
+    { provider: "synth", apiKey: "", model: "synth-wav", enabled: true },
+    { activeLens: "modern", syncModels: false }
+  );
+
+  try {
+    const base = `http://127.0.0.1:${testPort}`;
+
+    // Valid export with download flag
+    const res = await fetch(`${base}/export?url=${encodeURIComponent(exportUrl)}&download=1`);
+    assert.equal(res.status, 200);
+    assert.equal(res.headers.get("content-type"), "text/html; charset=utf-8");
+    const disposition = res.headers.get("content-disposition");
+    assert.ok(disposition.includes("attachment"), "Must provide attachment disposition");
+    const body = await res.text();
+    assert.ok(body.includes("data:image/jpeg;base64,"));
+
+    // Missing URL returns 404
+    const notFoundRes = await fetch(`${base}/export?url=${encodeURIComponent("https://notfound.example.com")}`);
+    assert.equal(notFoundRes.status, 404);
+  } finally {
+    server.close();
+  }
 });

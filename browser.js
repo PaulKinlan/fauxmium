@@ -93,9 +93,20 @@ function startBrowser(hostname, port, devtools) {
           }
           recordLinkContext(ctx);
         });
-      } catch (err) {
-        // Function may already be exposed on this page
-      }
+      try {
+        await page.exposeFunction("__fauxmiumRemixElement", async (payload) => {
+          try {
+            const res = await fetch(`http://${hostname}:${port}/api?action=remix`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            });
+            return await res.json();
+          } catch (e) {
+            return { ok: false, error: e.message };
+          }
+        });
+      } catch (err) {}
 
       await page.evaluateOnNewDocument(() => {
         let bar = null;
@@ -129,6 +140,97 @@ function startBrowser(hostname, port, devtools) {
                 0% { background-position: 200% 0; }
                 100% { background-position: -200% 0; }
               }
+              .faux-remix-highlight {
+                outline: 2px dashed #a855f7 !important;
+                outline-offset: 2px !important;
+                cursor: crosshair !important;
+              }
+              #faux-remix-badge {
+                position: fixed;
+                background: #1e1b4b;
+                color: #c084fc;
+                border: 1px solid #a855f7;
+                font-family: system-ui, -apple-system, sans-serif;
+                font-size: 11px;
+                font-weight: 600;
+                padding: 3px 8px;
+                border-radius: 9999px;
+                pointer-events: none;
+                z-index: 2147483646;
+                display: none;
+                box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3);
+              }
+              #faux-remix-modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.65);
+                backdrop-filter: blur(4px);
+                z-index: 2147483647;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-family: system-ui, -apple-system, sans-serif;
+              }
+              #faux-remix-card {
+                background: #0f172a;
+                border: 1px solid #334155;
+                color: #f8fafc;
+                border-radius: 12px;
+                padding: 20px;
+                width: 90%;
+                max-width: 480px;
+                box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5), 0 8px 10px -6px rgba(0,0,0,0.5);
+              }
+              #faux-remix-card h3 {
+                margin: 0 0 12px 0;
+                font-size: 16px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                color: #c084fc;
+              }
+              #faux-remix-card textarea {
+                width: 100%;
+                box-sizing: border-box;
+                background: #1e293b;
+                border: 1px solid #475569;
+                border-radius: 8px;
+                color: #fff;
+                padding: 10px;
+                font-size: 14px;
+                resize: vertical;
+                min-height: 80px;
+                font-family: inherit;
+              }
+              #faux-remix-card textarea:focus {
+                outline: 2px solid #a855f7;
+                border-color: transparent;
+              }
+              #faux-remix-actions {
+                display: flex;
+                justify-content: flex-end;
+                gap: 10px;
+                margin-top: 14px;
+              }
+              .faux-remix-btn {
+                padding: 7px 14px;
+                border-radius: 6px;
+                font-size: 13px;
+                font-weight: 500;
+                cursor: pointer;
+                border: none;
+              }
+              .faux-remix-cancel {
+                background: #334155;
+                color: #cbd5e1;
+              }
+              .faux-remix-submit {
+                background: linear-gradient(135deg, #9333ea, #6366f1);
+                color: #fff;
+              }
             `;
             root.appendChild(style);
           }
@@ -138,6 +240,12 @@ function startBrowser(hostname, port, devtools) {
             root.appendChild(bar);
           } else {
             bar = document.getElementById("faux-progress-bar");
+          }
+          if (!document.getElementById("faux-remix-badge")) {
+            const badge = document.createElement("div");
+            badge.id = "faux-remix-badge";
+            badge.textContent = "✨ Alt+Click to Remix";
+            root.appendChild(badge);
           }
         }
 
@@ -153,6 +261,137 @@ function startBrowser(hostname, port, devtools) {
 
         mountUI();
         window.addEventListener("DOMContentLoaded", mountUI);
+
+        // Alt+Click Element Remix wand handlers
+        let altPressed = false;
+        let lastHovered = null;
+
+        window.addEventListener("keydown", (e) => {
+          if (e.key === "Alt" && !altPressed) {
+            altPressed = true;
+          }
+        });
+
+        window.addEventListener("keyup", (e) => {
+          if (e.key === "Alt") {
+            altPressed = false;
+            if (lastHovered) {
+              lastHovered.classList.remove("faux-remix-highlight");
+              lastHovered = null;
+            }
+            const badge = document.getElementById("faux-remix-badge");
+            if (badge) badge.style.display = "none";
+          }
+        });
+
+        window.addEventListener("mousemove", (e) => {
+          const badge = document.getElementById("faux-remix-badge");
+          if (!altPressed) {
+            if (badge) badge.style.display = "none";
+            return;
+          }
+          const target = e.target?.closest?.("div, section, article, header, footer, aside, nav, button, p, h1, h2, h3, h4, li, form, main, a");
+          if (target && !target.closest("#faux-remix-modal") && !target.closest("#faux-progress-bar")) {
+            if (lastHovered && lastHovered !== target) {
+              lastHovered.classList.remove("faux-remix-highlight");
+            }
+            lastHovered = target;
+            target.classList.add("faux-remix-highlight");
+            if (badge) {
+              badge.style.display = "block";
+              badge.style.left = `${e.clientX + 12}px`;
+              badge.style.top = `${e.clientY + 12}px`;
+            }
+          }
+        });
+
+        function openRemixDialog(targetEl) {
+          const root = document.body || document.documentElement;
+          if (!root || document.getElementById("faux-remix-modal")) return;
+
+          const modal = document.createElement("div");
+          modal.id = "faux-remix-modal";
+          modal.innerHTML = `
+            <div id="faux-remix-card">
+              <h3>✨ Element Remix Wand</h3>
+              <p style="font-size:12px;color:#94a3b8;margin:0 0 10px 0;">Remixing <code>&lt;${targetEl.tagName.toLowerCase()}&gt;</code></p>
+              <textarea id="faux-remix-prompt" placeholder="E.g. Add dark neon styling, interactive hover state, or convert into a rich micro-app card..." autofocus></textarea>
+              <div id="faux-remix-actions">
+                <button type="button" class="faux-remix-btn faux-remix-cancel" id="faux-remix-cancel-btn">Cancel</button>
+                <button type="button" class="faux-remix-btn faux-remix-submit" id="faux-remix-submit-btn">✨ Remix</button>
+              </div>
+            </div>
+          `;
+          root.appendChild(modal);
+
+          const textarea = modal.querySelector("#faux-remix-prompt");
+          const cancelBtn = modal.querySelector("#faux-remix-cancel-btn");
+          const submitBtn = modal.querySelector("#faux-remix-submit-btn");
+
+          textarea?.focus();
+
+          const closeModal = () => {
+            modal.remove();
+            if (lastHovered) {
+              lastHovered.classList.remove("faux-remix-highlight");
+              lastHovered = null;
+            }
+          };
+
+          cancelBtn?.addEventListener("click", closeModal);
+          modal.addEventListener("click", (e) => {
+            if (e.target === modal) closeModal();
+          });
+          modal.addEventListener("keydown", (e) => {
+            if (e.key === "Escape") closeModal();
+          });
+
+          submitBtn?.addEventListener("click", async () => {
+            const promptVal = textarea?.value?.trim();
+            if (!promptVal) return;
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Remixing ✨...";
+
+            try {
+              if (window.__fauxmiumRemixElement) {
+                const res = await window.__fauxmiumRemixElement({
+                  currentHtml: targetEl.outerHTML,
+                  prompt: promptVal,
+                  url: window.location.href,
+                });
+                if (res && res.ok && res.html) {
+                  const doSwap = () => {
+                    const temp = document.createElement("div");
+                    temp.innerHTML = res.html;
+                    const newEl = temp.firstElementChild || temp;
+                    targetEl.replaceWith(newEl);
+                  };
+                  if (document.startViewTransition) {
+                    document.startViewTransition(doSwap);
+                  } else {
+                    doSwap();
+                  }
+                }
+              }
+            } catch (err) {
+              console.error("[remix] Failed to remix element:", err);
+            } finally {
+              closeModal();
+            }
+          });
+        }
+
+        window.addEventListener("click", (e) => {
+          if (e.altKey) {
+            e.preventDefault();
+            e.stopPropagation();
+            const target = e.target?.closest?.("div, section, article, header, footer, aside, nav, button, p, h1, h2, h3, h4, li, form, main, a") || e.target;
+            if (target && !target.closest("#faux-remix-modal")) {
+              openRemixDialog(target);
+              return;
+            }
+          }
+        }, true);
 
         try {
           const isDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -241,15 +480,47 @@ function startBrowser(hostname, port, devtools) {
         url.includes("type=chiptune") ||
         (headers.accept && headers.accept.includes("audio/"));
 
-      // Allow audio requests via fetch or audio tags
+      const isApi =
+        (resourceType === "fetch" || resourceType === "xhr") &&
+        (url.includes("/api/") ||
+          url.includes("/api?") ||
+          url.endsWith("/api") ||
+          (headers.accept && headers.accept.includes("application/json")));
+
+      // Allow audio requests and in-page API requests via fetch or xhr
       if (
         !isNav &&
         resourceType !== "image" &&
         resourceType !== "media" &&
-        !(isAudio && (resourceType === "fetch" || resourceType === "xhr"))
+        !(isAudio && (resourceType === "fetch" || resourceType === "xhr")) &&
+        !isApi
       ) {
         await request.respond("");
         return;
+      }
+
+      // Handle in-page API JSON requests directly to proxy /api
+      if (isApi) {
+        try {
+          const parsed = new URL(url);
+          let apiPath = parsed.pathname;
+          if (apiPath.startsWith("/api")) {
+            apiPath = apiPath.substring(4);
+          }
+          const target = new URL(`http://${hostname}:${port}/api${apiPath}${parsed.search}`);
+          const currentUrl = pageUrlMap.get(page) || "";
+          if (currentUrl && !target.searchParams.has("pageUrl")) {
+            target.searchParams.set("pageUrl", currentUrl);
+          }
+          console.log(`[browser] Redirecting in-page API ${method} ${url} -> ${target.toString()}`);
+          await request.continue({
+            url: target.toString(),
+            headers: newHeaders,
+          });
+          return;
+        } catch (e) {
+          console.warn("[browser] Error routing API request:", e.message);
+        }
       }
 
       // Handle POST form submissions on navigations

@@ -3,6 +3,7 @@ import { processHTML } from "./processHTML.js";
 import { processImage } from "./processImage.js";
 import { processVideo } from "./processVideo.js";
 import { processAudio } from "./processAudio.js";
+import { processAPI } from "./processAPI.js";
 import { sessionCosts, loadCosts, resetSessionCosts, syncGeminiModels } from "../lib/costCalculator.js";
 import {
   sessionState,
@@ -10,7 +11,7 @@ import {
   updateSessionConfig,
   getSessionConfig,
 } from "../lib/sessionState.js";
-import { clearAllCaches, getCacheStats } from "../lib/imageCache.js";
+import { clearAllCaches, getCacheStats, getExportHtml } from "../lib/imageCache.js";
 
 export async function startServer(
   hostname,
@@ -154,6 +155,36 @@ export async function startServer(
         res.statusCode = 200;
         res.setHeader("Content-Type", "application/json");
         res.end(JSON.stringify(getCacheStats(), null, 2));
+      } else if (url.pathname === "/api" || url.pathname.startsWith("/api/")) {
+        await processAPI(req, res, url, sessionState.textConfig);
+      } else if (url.pathname === "/export") {
+        const targetUrl = url.searchParams.get("url");
+        const exportHtml = getExportHtml(targetUrl);
+        if (!exportHtml) {
+          res.statusCode = 404;
+          res.setHeader("Content-Type", "application/json");
+          res.end(
+            JSON.stringify({
+              error: "Page not found in cache for export",
+              url: targetUrl,
+            })
+          );
+        } else {
+          res.statusCode = 200;
+          res.setHeader("Content-Type", "text/html; charset=utf-8");
+          const download = url.searchParams.get("download") === "1";
+          if (download) {
+            let filename = "fauxmium-export.html";
+            try {
+              if (targetUrl) {
+                const u = new URL(targetUrl);
+                filename = `${u.hostname.replace(/[^a-z0-9_-]/gi, "_")}.html`;
+              }
+            } catch {}
+            res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+          }
+          res.end(exportHtml);
+        }
       } else {
         res.statusCode = 404;
         res.setHeader("Content-Type", "text/plain");

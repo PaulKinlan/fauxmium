@@ -54,6 +54,10 @@ export function commonNetOptions(y) {
       type: "boolean",
       default: true,
       describe: "Enable audio generation (use --no-audio to disable)",
+    })
+    .option("base-url", {
+      type: "string",
+      describe: "Custom base URL for OpenAI-compatible providers or local inference servers (e.g. Ollama, vLLM)",
     });
 }
 

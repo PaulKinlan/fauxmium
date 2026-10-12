@@ -39,10 +39,18 @@ export function resolveApiKey(provider) {
 export function validateApiKeys(providers, argv) {
   const { text, image, video, audio } = providers;
 
-  const textApiKey = argv["api-key"] || resolveApiKey(text);
-  const imageApiKey = argv["image-api-key"] || resolveApiKey(image);
-  const videoApiKey = argv["video-api-key"] || resolveApiKey(video);
-  const audioApiKey = argv["audio-api-key"] || resolveApiKey(audio);
+  let textApiKey = argv["api-key"] || resolveApiKey(text);
+  const textConfig = getProviderConfig(text);
+  const allowEmpty =
+    textConfig?.allowEmptyKey ||
+    (argv["base-url"] &&
+      (argv["base-url"].includes("localhost") ||
+        argv["base-url"].includes("127.0.0.1") ||
+        argv["base-url"].includes("0.0.0.0")));
+
+  if (!textApiKey && allowEmpty) {
+    textApiKey = "local";
+  }
 
   if (!textApiKey) {
     console.error(

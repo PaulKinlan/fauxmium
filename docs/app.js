@@ -2151,6 +2151,32 @@ Instructions:
       { id: "llama-3.3-70b-versatile", name: "Llama 3.3 70B (Default)" },
       { id: "openai/gpt-oss-120b", name: "GPT-OSS 120B" },
     ],
+    deepseek: [
+      { id: "deepseek-v4-flash", name: "DeepSeek V4 Flash (Default)" },
+      { id: "deepseek-v4", name: "DeepSeek V4" },
+      { id: "deepseek-reasoner", name: "DeepSeek Reasoner" },
+      { id: "deepseek-chat", name: "DeepSeek Chat (V3)" },
+    ],
+    zai: [
+      { id: "glm-5-flash", name: "GLM-5 Flash (Default)" },
+      { id: "glm-5-plus", name: "GLM-5 Plus" },
+      { id: "glm-5-air", name: "GLM-5 Air" },
+    ],
+    kimi: [
+      { id: "kimi-k2.5-flash", name: "Kimi K2.5 Flash (Default)" },
+      { id: "kimi-k2.5", name: "Kimi K2.5" },
+      { id: "kimi-k2-thinking", name: "Kimi K2 Thinking" },
+    ],
+    openrouter: [
+      { id: "deepseek/deepseek-v4-flash", name: "OpenRouter DeepSeek V4 Flash (Default)" },
+      { id: "z-ai/glm-5", name: "OpenRouter GLM-5" },
+      { id: "moonshotai/kimi-k2.5", name: "OpenRouter Kimi K2.5" },
+    ],
+    ollama: [
+      { id: "qwen3.8:14b", name: "Ollama Qwen 3.8 14B (Default - Offline)" },
+      { id: "deepseek-r1:14b", name: "Ollama DeepSeek-R1 14B" },
+      { id: "llama3.3:70b", name: "Ollama Llama 3.3 70B" },
+    ],
   };
 
   function updateModelOptions() {
@@ -2193,6 +2219,11 @@ Instructions:
     if (provider === "openai") envLines.push("OPENAI_API_KEY=your_openai_api_key");
     if (provider === "anthropic") envLines.push("ANTHROPIC_API_KEY=your_anthropic_api_key");
     if (provider === "groq") envLines.push("GROQ_API_KEY=your_groq_api_key");
+    if (provider === "deepseek") envLines.push("DEEPSEEK_API_KEY=your_deepseek_api_key");
+    if (provider === "zai") envLines.push("ZHIPU_API_KEY=your_zhipu_api_key");
+    if (provider === "kimi") envLines.push("MOONSHOT_API_KEY=your_moonshot_api_key");
+    if (provider === "openrouter") envLines.push("OPENROUTER_API_KEY=your_openrouter_api_key");
+    if (provider === "ollama") envLines.push("# Ollama runs locally at http://127.0.0.1:11434 (No API key required)");
     if (audioProvider === "openai" && provider !== "openai") envLines.push("OPENAI_API_KEY=your_openai_api_key");
     if (audioProvider === "gemini" && provider !== "gemini") envLines.push("GEMINI_API_KEY=your_gemini_api_key");
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import dotenv from "dotenv";
-dotenv.config();
+dotenv.config({ quiet: true });
 import yargs from "yargs/yargs";
 import { hideBin } from "yargs/helpers";
 import {
