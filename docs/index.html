@@ -72,6 +72,9 @@
 
       <!-- Simulated Browser Window Container -->
       <div class="browser-window">
+        <!-- Streaming Progress Bar -->
+        <div id="sim-progress-bar" class="sim-progress-bar"></div>
+
         <!-- Top Toolbar -->
         <div class="browser-topbar">
           <div class="window-dots">
@@ -80,9 +83,9 @@
             <span class="dot dot-green"></span>
           </div>
 
-          <button class="browser-nav-btn" title="Back" aria-label="Back">←</button>
-          <button class="browser-nav-btn" title="Forward" aria-label="Forward">→</button>
-          <button class="browser-nav-btn" title="Reload" aria-label="Reload">↻</button>
+          <button id="sim-back-btn" class="browser-nav-btn" title="Back" aria-label="Back" disabled>←</button>
+          <button id="sim-fwd-btn" class="browser-nav-btn" title="Forward" aria-label="Forward" disabled>→</button>
+          <button id="sim-reload-btn" class="browser-nav-btn" title="Reload" aria-label="Reload">↻</button>
 
           <!-- Omnibox -->
           <div class="omnibox-wrap">
@@ -90,19 +93,25 @@
             <input type="text" id="sim-omnibox" class="omnibox" value="https://news.ycombinator.com" aria-label="URL Omnibox">
           </div>
 
-          <!-- Controls: Lens Picker, Audio Audition, Extension Toggle -->
+          <!-- Controls: Lens Picker, Live AI BYOK, Audio Audition, Extension Toggle -->
           <div class="browser-controls">
             <div class="lens-picker-wrap">
               <span class="lens-label">Lens:</span>
               <select id="sim-lens-select" class="lens-select" aria-label="Select Browsing Lens">
                 <option value="modern" selected>Modern Web (2026)</option>
                 <option value="retro-90s">Retro 90s Geocities</option>
+                <option value="y2k">Y2K Frutiger Aero</option>
                 <option value="cyberpunk-2077">Cyberpunk 2077</option>
                 <option value="brutalist">Neo-Brutalist</option>
+                <option value="vaporwave">Vaporwave Aesthetic</option>
                 <option value="noir-1940s">Film Noir 1940s</option>
                 <option value="arcade-8bit">Arcade 8-Bit</option>
               </select>
             </div>
+
+            <button id="sim-byok-btn" class="btn-byok" title="Connect your own Gemini API Key for live LLM streaming">
+              🔑 Live AI Mode
+            </button>
 
             <button id="sim-audition-btn" class="btn-audition" title="Audition zero-dependency procedural audio for the active lens">
               🔊 Audition Audio
@@ -121,12 +130,20 @@
           <button class="route-btn active" data-route="https://news.ycombinator.com">Hacker News</button>
           <button class="route-btn" data-route="https://youtube.com/watch?v=ai-web">YouTube Video</button>
           <button class="route-btn" data-route="https://paul.kinlan.me">Paul Kinlan Blog</button>
-          <button class="route-btn" data-route="https://shop.example.com/cart">E-Commerce Cart</button>
+          <button class="route-btn" data-route="https://shop.example.com/cart">E-Commerce Store</button>
+          <button class="route-btn" data-route="https://en.wikipedia.org/wiki/Time_Travel">Wikipedia</button>
+          <button class="route-btn" data-route="https://reddit.com/r/cyberpunk">Reddit</button>
         </div>
 
         <!-- Viewport Outer Container -->
         <div class="viewport-outer">
-          <!-- Simulator Content Viewport (rendered dynamically by app.js) -->
+          <!-- Floating Streaming / Cache Status Pill -->
+          <div id="sim-status-pill" class="sim-status-pill hidden">
+            <span class="sim-pill-dot"></span>
+            <span id="sim-pill-text">⚡ Streaming from <code>gemini-3.8-flash</code> (Prompt Cache Hit: 75% saved • 1,840 cached tokens)...</span>
+          </div>
+
+          <!-- Simulator Content Viewport (rendered dynamically by app.js or live Gemini iframe) -->
           <div id="sim-viewport"></div>
 
           <!-- Coherence & Link Intent Inspector Drawer -->
@@ -134,7 +151,7 @@
             <div class="drawer-header">
               <div class="drawer-title">
                 <span>🧬 Coherence & Link Intent Inspector</span>
-                <span style="font-size:0.75rem; font-weight:400; opacity:0.8;">(Captured by siteMemory.js)</span>
+                <span style="font-size:0.75rem; font-weight:400; opacity:0.8;">(Captured by siteMemory.js & Fauxmium Engine)</span>
               </div>
               <button id="drawer-close-btn" class="drawer-close" aria-label="Close Drawer">×</button>
             </div>
@@ -154,40 +171,162 @@
             </div>
           </div>
 
-          <!-- Simulated Chrome Extension Popup Drawer -->
+          <!-- Simulated Chrome Extension Popup Drawer (Authentic Replica of extension/popup.html) -->
           <div id="extension-popup-sim" class="extension-popup-sim">
             <div class="ext-sim-header">
               <div class="ext-sim-brand">
-                <img src="icon.svg" width="18" height="18" alt="Fauxmium Icon">
-                <span>Fauxmium Companion</span>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="10" cy="10" r="8.5" stroke="#2563eb" stroke-width="1.5" stroke-linecap="round"/>
+                  <path d="M 10,1.5 A 8.5,8.5 0 0,1 18.5,10" stroke="#10b981" stroke-width="1.5" stroke-linecap="round"/>
+                  <path d="M 1.5,10 A 8.5,8.5 0 0,1 10,1.5" stroke="#f43f5e" stroke-width="1.5" stroke-linecap="round"/>
+                  <polygon points="10,4 13.5,10 10,10" fill="#3b82f6"/>
+                  <polygon points="10,10 13.5,10 10,16" fill="#10b981"/>
+                  <polygon points="10,10 10,16 6.5,10" fill="#f43f5e"/>
+                  <polygon points="6.5,10 10,4 10,10" fill="#06b6d4"/>
+                  <polygon points="10,6 12,10 10,14 8,10" fill="#ffffff"/>
+                  <circle cx="10" cy="10" r="1.2" fill="#1e293b"/>
+                </svg>
+                <span>Fauxmium</span>
+                <span class="ext-sim-badge-tag">AI Web</span>
               </div>
-              <span style="font-size:0.7rem; color:var(--success); font-family:var(--font-mono); font-weight:700;">LIVE</span>
+              <div class="ext-sim-total-badge" id="sim-ext-total">$0.0084</div>
             </div>
-            <div class="ext-sim-cost-card">
-              <div style="font-size:0.75rem; text-transform:uppercase; color:var(--text-dim); margin-bottom:2px;">Session Spend</div>
-              <div class="ext-sim-total">$0.0084</div>
-              <span class="ext-sim-discount-badge">⚡ 75% Prompt Cache Saved</span>
+
+            <!-- Quick Action Bar -->
+            <div class="ext-sim-actions">
+              <button id="sim-ext-btn-reload" class="ext-btn ext-btn-primary" title="Bypass cache and regenerate tab">↻ Regenerate Tab</button>
+              <button id="sim-ext-btn-clear" class="ext-btn ext-btn-secondary" title="Flush cache">Clear Cache</button>
+              <button id="sim-ext-btn-reset" class="ext-btn ext-btn-secondary" title="Reset costs">Reset Costs</button>
             </div>
-            <div class="ext-sim-row">
-              <span>Active Model:</span>
-              <span style="font-family:var(--font-mono); font-weight:600;">gemini-3.8-flash</span>
+
+            <!-- Browsing Lens Sync -->
+            <div class="ext-sim-section">
+              <div class="ext-sim-section-header">
+                <label for="sim-ext-lens-select" class="ext-sim-label">Browsing Lens</label>
+                <span class="ext-sim-hint">Simulate different worlds</span>
+              </div>
+              <select id="sim-ext-lens-select" class="ext-sim-select">
+                <option value="modern">Modern Web (Responsive & Clean)</option>
+                <option value="retro-90s">Retro 90s Geocities</option>
+                <option value="y2k">Y2K Frutiger Aero</option>
+                <option value="cyberpunk-2077">Cyberpunk 2077</option>
+                <option value="brutalist">Neo-Brutalist</option>
+                <option value="vaporwave">Vaporwave Aesthetic</option>
+                <option value="noir-1940s">Film Noir 1940s</option>
+                <option value="arcade-8bit">Arcade 8-Bit</option>
+              </select>
             </div>
-            <div class="ext-sim-row">
-              <span>Active Lens:</span>
-              <span style="font-family:var(--font-mono); font-weight:600;">Modern Web</span>
+
+            <!-- Media Toggles -->
+            <div class="ext-sim-section">
+              <div class="ext-sim-section-header">
+                <span class="ext-sim-label">Generation Models & Media</span>
+              </div>
+              <div class="ext-sim-grid">
+                <div class="ext-sim-row">
+                  <span class="ext-sim-row-label">Text</span>
+                  <span class="ext-sim-row-val">gemini-3.8-flash</span>
+                </div>
+                <div class="ext-sim-row">
+                  <label class="ext-sim-toggle-wrap">
+                    <input type="checkbox" id="sim-toggle-images" checked>
+                    <span class="ext-toggle-text">Images</span>
+                  </label>
+                  <span class="ext-sim-row-val">gemini-3.1-flash-image</span>
+                </div>
+                <div class="ext-sim-row">
+                  <label class="ext-sim-toggle-wrap">
+                    <input type="checkbox" id="sim-toggle-videos" checked>
+                    <span class="ext-toggle-text">Videos</span>
+                  </label>
+                  <span class="ext-sim-row-val">veo-3.1-fast</span>
+                </div>
+                <div class="ext-sim-row">
+                  <label class="ext-sim-toggle-wrap">
+                    <input type="checkbox" id="sim-toggle-audio" checked>
+                    <span class="ext-toggle-text">Audio</span>
+                  </label>
+                  <span class="ext-sim-row-val">synth-wav ($0)</span>
+                </div>
+              </div>
             </div>
-            <div class="ext-sim-row">
-              <span>HTML Tokens:</span>
-              <span style="font-family:var(--font-mono);">1,420 (850 cached)</span>
+
+            <!-- Session Spend Breakdown -->
+            <div class="ext-sim-section">
+              <div class="ext-sim-section-header">
+                <span class="ext-sim-label">Session Spend Breakdown</span>
+              </div>
+              <div class="ext-metrics-grid">
+                <div class="ext-metric-card">
+                  <span class="ext-metric-title">Text</span>
+                  <span class="ext-metric-value" id="sim-spend-text">$0.0032</span>
+                </div>
+                <div class="ext-metric-card">
+                  <span class="ext-metric-title">Images</span>
+                  <span class="ext-metric-value" id="sim-spend-image">$0.0052</span>
+                </div>
+                <div class="ext-metric-card">
+                  <span class="ext-metric-title">Videos</span>
+                  <span class="ext-metric-value" id="sim-spend-video">$0.0000</span>
+                </div>
+                <div class="ext-metric-card">
+                  <span class="ext-metric-title">Audio</span>
+                  <span class="ext-metric-value" id="sim-spend-audio">$0.0000</span>
+                </div>
+              </div>
             </div>
-            <div class="ext-sim-row">
-              <span>Procedural Audio:</span>
-              <span style="font-family:var(--font-mono); color:var(--success); font-weight:600;">Free (Node synth)</span>
+
+            <!-- Recent Requests Log -->
+            <div class="ext-sim-section">
+              <div class="ext-sim-section-header">
+                <span class="ext-sim-label">Recent Requests (<span id="sim-req-count">3</span>)</span>
+              </div>
+              <div id="sim-requests-list" class="ext-requests-list"></div>
             </div>
-            <div class="ext-sim-row">
-              <span>Video Stream:</span>
-              <span style="font-family:var(--font-mono);">veo-3.1-fast</span>
+          </div>
+        </div>
+
+        <!-- Browser Bottom Status Bar -->
+        <div class="browser-bottombar">
+          <div class="bottombar-left">
+            <span class="status-indicator"></span>
+            <span id="sim-status-text">HTTP 200 OK • Ready</span>
+            <span class="bottombar-divider">|</span>
+            <span id="sim-cache-pill" class="bottombar-cache-pill">⚡ Prompt Cache: 75% Saved</span>
+          </div>
+          <div class="bottombar-right">
+            <button id="sim-inspect-toggle" class="btn-bottombar-inspect" title="Inspect LLM Prompt, Site DNA and Link Intent Context">
+              🧬 Inspect Prompt, Site DNA & Link Intent
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live AI Mode Modal (BYOK) -->
+      <div id="byok-modal" class="byok-modal" aria-hidden="true">
+        <div class="byok-dialog">
+          <div class="byok-header">
+            <div class="byok-title">
+              <span>🔑 Live AI Mode (Bring Your Own Gemini Key)</span>
             </div>
+            <button id="byok-close-btn" class="byok-close" aria-label="Close">×</button>
+          </div>
+          <div class="byok-body">
+            <p>
+              Connect your Google Gemini API key to stream live, unscripted AI web generations for <em>any</em> URL in real time.
+            </p>
+            <div class="byok-notice">
+              🔒 <strong>Security:</strong> Your key is stored exclusively in your browser's temporary <code>sessionStorage</code> and is sent directly to Google's official Gemini endpoint. It is never logged or saved to any third-party server.
+            </div>
+            <div class="byok-field">
+              <label for="byok-key-input">Gemini API Key</label>
+              <input type="password" id="byok-key-input" placeholder="AIzaSy..." autocomplete="off">
+            </div>
+            <div class="byok-actions">
+              <button id="byok-save-btn" class="btn btn-primary">Activate Live Mode</button>
+              <button id="byok-clear-btn" class="btn btn-secondary">Clear Stored Key</button>
+            </div>
+            <div id="byok-status" class="byok-status"></div>
           </div>
         </div>
       </div>
