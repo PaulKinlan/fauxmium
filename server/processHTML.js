@@ -20,7 +20,21 @@ import {
   updateAndGetDomainState,
 } from "../lib/siteMemory.js";
 
-export async function processHTML(req, res, url, textConfig) {
+export async function processHTML(arg1, arg2, arg3, arg4, arg5 = {}) {
+  let req, res, url, textConfig, abortSignal;
+  if (arg1 && typeof arg1.setHeader === "function") {
+    res = arg1;
+    url = arg2;
+    textConfig = arg3;
+    abortSignal = arg4?.abortSignal;
+    req = null;
+  } else {
+    req = arg1;
+    res = arg2;
+    url = arg3;
+    textConfig = arg4;
+    abortSignal = arg5?.abortSignal;
+  }
   let contentType = "text/html; charset=utf-8";
   res.setHeader("Content-Type", contentType);
 
@@ -205,10 +219,14 @@ export async function processHTML(req, res, url, textConfig) {
       { role: "user", content: structuredPrompt.prompt },
     ];
 
-    const response = streamText(textConfig, {
-      system: structuredPrompt.system,
-      messages: currentMessages,
-    });
+    const response = streamText(
+      textConfig,
+      {
+        system: structuredPrompt.system,
+        messages: currentMessages,
+      },
+      { abortSignal }
+    );
     const calc = costCalculator(textConfig.model, requestUrl, "text");
 
     const outputStream = processChunks(
@@ -220,12 +238,13 @@ export async function processHTML(req, res, url, textConfig) {
     let fullHtml = "";
 
     for await (const codeChunk of outputStream) {
+      if (abortSignal?.aborted) break;
       fullHtml += codeChunk;
       res.write(codeChunk);
     }
 
     // Cache the successfully generated page for instant Back/Forward navigation
-    if (fullHtml.trim()) {
+    if (!abortSignal?.aborted && fullHtml.trim()) {
       cacheHtml(htmlCacheKey, fullHtml);
       recordNavigation({
         url: requestUrl,
@@ -240,11 +259,21 @@ export async function processHTML(req, res, url, textConfig) {
       appendNavigationTurn(requestUrl, structuredPrompt.prompt, fullHtml);
     }
 
-    res.end();
+    if (!res.writableEnded) res.end();
   } catch (error) {
+    const aborted = abortSignal?.aborted === true || error?.name === "AbortError";
+    if (aborted) {
+      // A cancelled generation is neither a success nor a product failure: say
+      // which it was, and do not write an error page to a socket that is gone.
+      console.log(`Generation cancelled for ${requestUrl} (client disconnected)`);
+      if (!res.writableEnded) res.end();
+      return;
+    }
     console.error(`Failed to generate content for ${requestUrl}:`, error);
-    res.end(
-      `<!DOCTYPE html><html><head><title>Generation Error</title><style>body{font-family:sans-serif;padding:40px;background:#181824;color:#f0f2f5;}pre{background:#2a2b3d;padding:16px;border-radius:8px;overflow-x:auto;color:#ff8b94;}</style></head><body><h1>Fauxmium Generation Error</h1><p>Failed to generate content for <code>${requestUrl}</code></p><pre>${error.message}</pre></body></html>`
-    );
+    if (!res.writableEnded) {
+      res.end(
+        `<!DOCTYPE html><html><head><title>Generation Error</title><style>body{font-family:sans-serif;padding:40px;background:#181824;color:#f0f2f5;}pre{background:#2a2b3d;padding:16px;border-radius:8px;overflow-x:auto;color:#ff8b94;}</style></head><body><h1>Fauxmium Generation Error</h1><p>Failed to generate content for <code>${requestUrl}</code></p><pre>${error.message}</pre></body></html>`
+      );
+    }
   }
 }

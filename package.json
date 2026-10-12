@@ -6,7 +6,7 @@
   "type": "module",
   "bin": "./index.js",
   "scripts": {
-    "test": "node --test test/fauxmium.test.js"
+    "test": "node --test"
   },
   "keywords": [
     "Chrome",

@@ -10,7 +10,6 @@ import {
 import { serveMediaBuffer } from "../lib/rangeResponse.js";
 import { FALLBACK_MP4_BUFFER } from "../lib/fallbackMedia.js";
 import { getActiveLensInstruction } from "../lib/sessionState.js";
-
 function calculateAspectRatio(w, h) {
   const width = parseFloat(w) || 1280;
   const height = parseFloat(h) || 720;
@@ -24,7 +23,21 @@ function calculateAspectRatio(w, h) {
   return `${Math.round(ratio * 100) / 100}:1`;
 }
 
-export async function processVideo(req, res, url, VideoConfig) {
+export async function processVideo(arg1, arg2, arg3, arg4, arg5 = {}) {
+  let req, res, url, VideoConfig, abortSignal;
+  if (arg1 && typeof arg1.setHeader === "function") {
+    res = arg1;
+    url = arg2;
+    VideoConfig = arg3;
+    abortSignal = arg4?.abortSignal;
+    req = { headers: {} };
+  } else {
+    req = arg1;
+    res = arg2;
+    url = arg3;
+    VideoConfig = arg4;
+    abortSignal = arg5?.abortSignal;
+  }
   const requestUrl = url.searchParams.get("url") || "";
 
   let newUrl;
@@ -104,7 +117,7 @@ export async function processVideo(req, res, url, VideoConfig) {
     const { mimeType, base64Data } = await generateVideo(
       VideoConfig,
       prompt,
-      posterImageData ? { image: posterImageData } : {}
+      posterImageData ? { image: posterImageData, abortSignal } : { abortSignal }
     );
 
     const binaryData = Buffer.from(base64Data, "base64");
@@ -126,9 +139,16 @@ export async function processVideo(req, res, url, VideoConfig) {
     console.log(`[video] Video generated successfully for ${requestUrl}`);
     serveMediaBuffer(req, res, binaryData, mimeType || "video/mp4");
   } catch (e) {
+    if (abortSignal?.aborted === true || e?.name === "AbortError") {
+      console.log(`Video generation cancelled for ${requestUrl} (client disconnected)`);
+      if (!res.writableEnded) res.end();
+      return;
+    }
     console.error(`[video] Failed to generate video for ${requestUrl}:`, e.message);
 
     // Serve valid minimal MP4 so player doesn't crash or display broken icon
-    serveMediaBuffer(req, res, FALLBACK_MP4_BUFFER, "video/mp4");
+    if (!res.writableEnded) {
+      serveMediaBuffer(req, res, FALLBACK_MP4_BUFFER, "video/mp4");
+    }
   }
 }

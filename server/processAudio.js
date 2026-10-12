@@ -10,7 +10,7 @@ import { serveMediaBuffer } from "../lib/rangeResponse.js";
 import { synthesizeWav } from "../lib/audioSynth.js";
 import { sessionState, getActiveLensInstruction } from "../lib/sessionState.js";
 
-export async function processAudio(req, res, url, audioConfig) {
+export async function processAudio(req, res, url, audioConfig, { abortSignal } = {}) {
   const requestUrl = url.searchParams.get("url") || "";
 
   let newUrl;
@@ -74,6 +74,7 @@ export async function processAudio(req, res, url, audioConfig) {
         bpm,
         mood,
         lens,
+        abortSignal,
       }
     );
 
@@ -88,10 +89,17 @@ export async function processAudio(req, res, url, audioConfig) {
 
     serveMediaBuffer(req, res, buffer, mimeType);
   } catch (e) {
+    if (abortSignal?.aborted || e?.name === "AbortError") {
+      console.log(`Audio generation cancelled for ${requestUrl} (client disconnected)`);
+      if (!res.writableEnded) res.end();
+      return;
+    }
     console.error(`[audio] Failed to generate audio for ${requestUrl}:`, e.message);
 
     // Fallback to procedural WAV synthesizer
-    const fallback = synthesizeWav({ description, transcript, type, durationSeconds, bpm, mood, lens });
-    serveMediaBuffer(req, res, fallback.buffer, fallback.mimeType);
+    if (!res.writableEnded) {
+      const fallback = synthesizeWav({ description, transcript, type, durationSeconds, bpm, mood, lens });
+      serveMediaBuffer(req, res, fallback.buffer, fallback.mimeType);
+    }
   }
 }

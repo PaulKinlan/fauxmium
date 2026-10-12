@@ -88,15 +88,29 @@ export async function startServer(
 
     const url = new URL(req.url, `http://${req.headers.host || `${hostname}:${port}`}`);
 
+    // A generation outlives the browser unless something stops it: without a
+    // signal, navigating away left the provider generating (and billing) to
+    // completion. Abort THIS request's upstream work when its socket closes
+    // before the response finished — `close` fires for completed responses too,
+    // hence the writableFinished gate.
+    const upstream = new AbortController();
+    res.on("close", () => {
+      if (!res.writableFinished) {
+        console.log(`Client disconnected before completion: ${url.pathname} — aborting upstream work`);
+        upstream.abort(new Error("client disconnected"));
+      }
+    });
+    const options = { abortSignal: upstream.signal };
+
     try {
       if (url.pathname === "/html") {
-        await processHTML(req, res, url, sessionState.textConfig);
+        await processHTML(req, res, url, sessionState.textConfig, options);
       } else if (url.pathname === "/image") {
-        await processImage(res, url, sessionState.imageConfig);
+        await processImage(res, url, sessionState.imageConfig, options);
       } else if (url.pathname === "/video") {
-        await processVideo(req, res, url, sessionState.videoConfig);
+        await processVideo(req, res, url, sessionState.videoConfig, options);
       } else if (url.pathname === "/audio") {
-        await processAudio(req, res, url, sessionState.audioConfig);
+        await processAudio(req, res, url, sessionState.audioConfig, options);
       } else if (url.pathname === "/cost") {
         res.statusCode = 200;
         res.setHeader("Content-Type", "application/json");
@@ -157,5 +171,7 @@ export async function startServer(
     console.log(`Fauxmium proxy server running at http://${hostname}:${port}/`);
   });
 
+  // Return the handle: the caller owns the resource, and tests need to close it.
+  // (Nothing used the return value before; the CLI simply never shut it down.)
   return server;
 }

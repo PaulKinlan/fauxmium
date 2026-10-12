@@ -36,7 +36,7 @@ function calculateAspectRatio(w, h) {
   return `${Math.round(ratio * 100) / 100}:1`;
 }
 
-export async function processImage(res, url, imageConfig) {
+export async function processImage(res, url, imageConfig, { abortSignal } = {}) {
   const requestUrl = url.searchParams.get("url") || "";
 
   // Guard against data: URIs if ever passed to /image
@@ -126,7 +126,7 @@ export async function processImage(res, url, imageConfig) {
         lensInstruction: getActiveLensInstruction() || "Standard web imagery",
       });
 
-      generationPromise = generateImage(imageConfig, prompt);
+      generationPromise = generateImage(imageConfig, prompt, { abortSignal });
       registerPendingImage(cacheKey, generationPromise);
     }
 
@@ -150,6 +150,11 @@ export async function processImage(res, url, imageConfig) {
     res.setHeader("Content-Length", binaryData.length.toString());
     res.end(binaryData);
   } catch (e) {
+    if (abortSignal?.aborted === true || e?.name === "AbortError") {
+      console.log(`Image generation cancelled for ${displayUrl} (client disconnected)`);
+      if (!res.writableEnded) res.end();
+      return;
+    }
     console.error(`[image] Failed to generate image for ${requestUrl}:`, e.message);
 
     // Clean, styled SVG fallback matching width/height
@@ -160,6 +165,7 @@ export async function processImage(res, url, imageConfig) {
       title: "Image Generation Error",
     });
 
+    if (res.writableEnded) return;
     res.statusCode = 200;
     res.setHeader("Content-Type", placeholder.mimeType);
     res.setHeader("Content-Length", placeholder.buffer.length.toString());
